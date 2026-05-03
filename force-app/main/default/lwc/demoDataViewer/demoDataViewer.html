@@ -1,0 +1,29 @@
+<template>
+    <lightning-card title="Demo Data" icon-name="standard:data_streams">
+        <div slot="actions">
+            <lightning-combobox
+                name="dataType"
+                value={selectedType}
+                options={typeOptions}
+                onchange={handleTypeChange}
+                variant="label-hidden"
+                class="slds-size_small">
+            </lightning-combobox>
+        </div>
+        <div class="slds-p-around_small">
+            <template if:true={hasData}>
+                <lightning-datatable
+                    key-field="id"
+                    data={tableData}
+                    columns={tableColumns}
+                    hide-checkbox-column>
+                </lightning-datatable>
+            </template>
+            <template if:false={hasData}>
+                <div class="slds-align_absolute-center slds-p-around_medium">
+                    <p class="slds-text-body_regular slds-text-color_weak">No demo data for this account.</p>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>
