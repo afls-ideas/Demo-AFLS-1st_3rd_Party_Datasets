@@ -9,6 +9,30 @@
             <div class="slds-p-around_medium slds-text-color_weak">No patient journey data available for this provider.</div>
         </template>
         <template if:true={hasData}>
+            <!-- Playback Controls -->
+            <template if:true={showPlayback}>
+                <div class="slds-p-horizontal_medium slds-p-top_small">
+                    <div class="playback-bar">
+                        <button class="play-btn" onclick={handleStepBack} disabled={isAtStart} title="Previous period">
+                            <lightning-icon icon-name="utility:chevronleft" size="xx-small"></lightning-icon>
+                        </button>
+                        <button class="play-btn play-btn-main" onclick={handlePlayPause} title={playLabel}>
+                            <lightning-icon icon-name={playIcon} size="xx-small"></lightning-icon>
+                        </button>
+                        <button class="play-btn" onclick={handleStepForward} disabled={isAtEnd} title="Next period">
+                            <lightning-icon icon-name="utility:chevronright" size="xx-small"></lightning-icon>
+                        </button>
+                        <div class="period-timeline">
+                            <template for:each={periodDots} for:item="dot">
+                                <button key={dot.key} class={dot.dotClass} data-idx={dot.idx}
+                                    onclick={handleDotClick} title={dot.label}></button>
+                            </template>
+                        </div>
+                        <span class="period-label">{currentPeriodLabel}</span>
+                    </div>
+                </div>
+            </template>
+
             <!-- D3 Funnel -->
             <template if:true={hasSnapshot}>
                 <div class="slds-p-horizontal_medium slds-p-top_small">
@@ -81,7 +105,7 @@
                         </thead>
                         <tbody>
                             <template for:each={trendRows} for:item="tr">
-                                <tr key={tr.id}>
+                                <tr key={tr.id} class={tr.rowClass}>
                                     <td class="trend-period-cell">{tr.period}</td>
                                     <td class="trend-val-neutral">{tr.referred}</td>
                                     <td class="trend-val-neutral">{tr.verified}</td>

@@ -1,3 +1,96 @@
+/* Playback controls */
+.playback-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: linear-gradient(135deg, #f8fafc 0%, #eef3f8 100%);
+    border-radius: 0.75rem;
+    border: 1px solid #d8dde6;
+}
+
+.play-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid #d8dde6;
+    background: #ffffff;
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+    transition: background 0.15s, border-color 0.15s;
+}
+.play-btn:hover:not([disabled]) {
+    background: #eef3f8;
+    border-color: #0176d3;
+}
+.play-btn[disabled] {
+    opacity: 0.35;
+    cursor: default;
+}
+.play-btn-main {
+    width: 32px;
+    height: 32px;
+    background: #0176d3;
+    border-color: #0176d3;
+    --sds-c-icon-color-foreground-default: #ffffff;
+}
+.play-btn-main:hover:not([disabled]) {
+    background: #014486;
+    border-color: #014486;
+}
+
+.period-timeline {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+    padding: 0 0.5rem;
+}
+
+.period-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid #d8dde6;
+    background: #ffffff;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.25s ease;
+    flex-shrink: 0;
+}
+.period-dot:hover {
+    border-color: #0176d3;
+    background: #eef3f8;
+}
+.period-dot.active {
+    width: 12px;
+    height: 12px;
+    background: #0176d3;
+    border-color: #0176d3;
+    box-shadow: 0 0 0 3px rgba(1, 118, 211, 0.2);
+}
+
+.period-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #181818;
+    white-space: nowrap;
+    min-width: 80px;
+    text-align: right;
+}
+
+/* Active row highlight in trend table */
+.trend-row-active {
+    background: #eaf5fe;
+}
+.trend-row-active td {
+    border-bottom-color: #b3d4fc;
+}
+
 /* Signals */
 .signal-banner {
     display: flex;

@@ -14,11 +14,25 @@ export default class LscMobileInline_hubStatus extends LightningElement {
     _d3Loaded = false;
     _funnelData = [];
 
+    // Playback state
+    _sortedPeriods = [];
+    _periodIndex = 0;
+    _playing = false;
+    _playTimer = null;
+    playLabel = 'Play';
+    currentPeriodLabel = '';
+    periodProgress = '0%';
+    showPlayback = false;
+
     connectedCallback() {
         loadScript(this, d3js).then(() => {
             this._d3Loaded = true;
             this._tryRenderFunnel();
         });
+    }
+
+    disconnectedCallback() {
+        this._stopPlayback();
     }
 
     @wire(getDataForAccount, { accountId: '$recordId', dataType: 'patient_journey' })
@@ -29,6 +43,12 @@ export default class LscMobileInline_hubStatus extends LightningElement {
                 const parsed = JSON.parse(rec.Payload__c);
                 return { ...parsed, id: rec.Id || String(idx) };
             });
+            this._sortedPeriods = [...this._allData]
+                .filter(d => d.subtype !== 'safety_signal')
+                .sort((a, b) => a.period.localeCompare(b.period));
+            this.showPlayback = this._sortedPeriods.length > 1;
+            this._periodIndex = this._sortedPeriods.length - 1;
+            this._updatePeriodUI();
             this.processAll();
         } else {
             this.hasData = false;
@@ -37,29 +57,38 @@ export default class LscMobileInline_hubStatus extends LightningElement {
             this.latestSnapshot = null;
             this.trendRows = [];
             this._funnelData = [];
+            this._sortedPeriods = [];
+            this.showPlayback = false;
         }
     }
 
-    processAll() {
-        const sorted = [...this._allData].sort((a, b) => a.period.localeCompare(b.period));
-        const latest = sorted[sorted.length - 1];
-        const prior = sorted.length >= 2 ? sorted[sorted.length - 2] : null;
-        if (!latest) return;
+    _updatePeriodUI() {
+        if (this._sortedPeriods.length === 0) return;
+        const current = this._sortedPeriods[this._periodIndex];
+        this.currentPeriodLabel = current.period;
+        const max = this._sortedPeriods.length - 1;
+        this.periodProgress = max > 0 ? Math.round((this._periodIndex / max) * 100) + '%' : '100%';
+    }
 
-        this.latestSnapshot = { period: latest.period };
+    processForPeriod(periodIdx) {
+        const sorted = this._sortedPeriods;
+        if (!sorted.length) return;
+        const target = sorted[periodIdx];
+        const prior = periodIdx > 0 ? sorted[periodIdx - 1] : null;
+        if (!target) return;
 
-        const referred = latest.referred_to_hub || 0;
-        const verified = latest.benefits_verified || 0;
-        const approved = latest.approved_for_therapy || 0;
-        const started = latest.started_therapy || 0;
-        const onTherapy = latest.on_therapy || 0;
-        const enrolled = latest.patients_enrolled || 0;
-        const paApproved = latest.pa_approved || 0;
-        const paDenied = latest.pa_denied || 0;
-        const abandoned = latest.abandonment_count || 0;
-        const persistRaw = latest.persistency_rate;
-        const paAvgDays = latest.pa_avg_days_to_decision || 0;
-        const copayReduction = latest.copay_avg_oop_reduction || 0;
+        this.latestSnapshot = { period: target.period };
+
+        const referred = target.referred_to_hub || 0;
+        const verified = target.benefits_verified || 0;
+        const approved = target.approved_for_therapy || 0;
+        const started = target.started_therapy || 0;
+        const onTherapy = target.on_therapy || 0;
+        const paApproved = target.pa_approved || 0;
+        const paDenied = target.pa_denied || 0;
+        const abandoned = target.abandonment_count || 0;
+        const persistRaw = target.persistency_rate;
+        const paAvgDays = target.pa_avg_days_to_decision || 0;
         const persistPct = persistRaw != null ? (persistRaw * 100).toFixed(0) + '%' : '—';
         const totalPa = paApproved + paDenied;
 
@@ -117,7 +146,16 @@ export default class LscMobileInline_hubStatus extends LightningElement {
             enrollDelta, enrollSub, enrollCardClass: enrollLevel
         };
 
-        this.trendRows = sorted.map(r => {
+        this.detectSignals(target, prior, persistRaw, paAvgDays, totalPa, paDenied, referred, abandoned, conversionRate);
+    }
+
+    processAll() {
+        const sorted = this._sortedPeriods;
+        if (!sorted.length) return;
+
+        this.processForPeriod(this._periodIndex);
+
+        this.trendRows = sorted.map((r, idx) => {
             const ref = r.referred_to_hub || 0;
             const ot = r.on_therapy || 0;
             const conv = ref > 0 ? Math.round(ot / ref * 100) + '%' : '—';
@@ -129,6 +167,7 @@ export default class LscMobileInline_hubStatus extends LightningElement {
                 r.persistency_rate >= 0.85 ? 'trend-val-good' :
                 r.persistency_rate >= 0.75 ? 'trend-val-warn' : 'trend-val-bad';
             const abandonVal = r.abandonment_count || 0;
+            const isActive = idx === this._periodIndex;
             return {
                 id: r.id, period: r.period,
                 referred: String(ref),
@@ -138,16 +177,116 @@ export default class LscMobileInline_hubStatus extends LightningElement {
                 onTherapy: String(ot),
                 conversion: conv, conversionClass: convLevel,
                 persist: pRate, persistClass: pLevel,
-                abandon: String(abandonVal), abandonClass: abandonVal > 0 ? 'trend-val-warn' : 'trend-val-good'
+                abandon: String(abandonVal), abandonClass: abandonVal > 0 ? 'trend-val-warn' : 'trend-val-good',
+                rowClass: isActive ? 'trend-row-active' : ''
             };
         });
+    }
 
-        this.detectSignals(latest, prior, persistRaw, paAvgDays, totalPa, paDenied, referred, abandoned, conversionRate);
+    // Playback controls
+    handlePlayPause() {
+        if (this._playing) {
+            this._stopPlayback();
+        } else {
+            this._startPlayback();
+        }
+    }
+
+    handleStepBack() {
+        this._stopPlayback();
+        if (this._periodIndex > 0) {
+            this._periodIndex--;
+            this._updatePeriodUI();
+            this.processAll();
+        }
+    }
+
+    handleStepForward() {
+        this._stopPlayback();
+        if (this._periodIndex < this._sortedPeriods.length - 1) {
+            this._periodIndex++;
+            this._updatePeriodUI();
+            this.processAll();
+        }
+    }
+
+    handleSliderChange(event) {
+        this._stopPlayback();
+        this._periodIndex = parseInt(event.target.value, 10);
+        this._updatePeriodUI();
+        this.processAll();
+    }
+
+    _startPlayback() {
+        if (this._sortedPeriods.length <= 1) return;
+        this._playing = true;
+        this.playLabel = 'Pause';
+
+        if (this._periodIndex >= this._sortedPeriods.length - 1) {
+            this._periodIndex = 0;
+            this._updatePeriodUI();
+            this.processAll();
+        }
+
+        this._playTimer = setInterval(() => {
+            if (this._periodIndex < this._sortedPeriods.length - 1) {
+                this._periodIndex++;
+                this._updatePeriodUI();
+                this.processAll();
+            } else {
+                this._stopPlayback();
+            }
+        }, 2000);
+    }
+
+    _stopPlayback() {
+        this._playing = false;
+        this.playLabel = 'Play';
+        if (this._playTimer) {
+            clearInterval(this._playTimer);
+            this._playTimer = null;
+        }
+    }
+
+    get sliderMax() {
+        return Math.max(this._sortedPeriods.length - 1, 0);
+    }
+
+    get sliderValue() {
+        return this._periodIndex;
+    }
+
+    get playIcon() {
+        return this._playing ? 'utility:pause' : 'utility:right';
+    }
+
+    get isAtStart() {
+        return this._periodIndex === 0;
+    }
+
+    get isAtEnd() {
+        return this._periodIndex >= this._sortedPeriods.length - 1;
+    }
+
+    get periodDots() {
+        return this._sortedPeriods.map((p, i) => ({
+            key: p.period,
+            label: p.period,
+            dotClass: i === this._periodIndex ? 'period-dot active' : 'period-dot',
+            idx: i
+        }));
+    }
+
+    handleDotClick(event) {
+        this._stopPlayback();
+        const idx = parseInt(event.currentTarget.dataset.idx, 10);
+        this._periodIndex = idx;
+        this._updatePeriodUI();
+        this.processAll();
     }
 
     _tryRenderFunnel() {
         if (!this._d3Loaded || this._funnelData.length === 0) return;
-        // eslint-disable-next-line @lwc/lwc/no-async-operation
         requestAnimationFrame(() => this._drawFunnel());
     }
 
@@ -160,12 +299,11 @@ export default class LscMobileInline_hubStatus extends LightningElement {
     _drawFunnel() {
         const container = this.template.querySelector('.funnel-chart');
         if (!container) return;
-        this._clearContainer(container);
 
         const d3 = window.d3;
         const data = this._funnelData;
         const n = data.length;
-        const topVal = Math.max(data[0].value, 1);
+        const maxRef = Math.max(...this._sortedPeriods.map(p => p.referred_to_hub || 0), 1);
         const font = 'system-ui, -apple-system, sans-serif';
 
         const W = 600;
@@ -180,17 +318,24 @@ export default class LscMobileInline_hubStatus extends LightningElement {
         const labelX = cx - maxHalfW - 16;
 
         const halfW = (val) => {
-            const ratio = val / topVal;
+            const ratio = val / maxRef;
             return minHalfW + (maxHalfW - minHalfW) * ratio;
         };
 
-        const svg = d3.select(container)
-            .append('svg')
-            .attr('viewBox', `0 0 ${W} ${H}`)
-            .attr('width', '100%')
-            .attr('style', 'display:block');
+        let svg = d3.select(container).select('svg');
+        const isUpdate = !svg.empty();
 
-        const defs = svg.append('defs');
+        if (!isUpdate) {
+            svg = d3.select(container)
+                .append('svg')
+                .attr('viewBox', `0 0 ${W} ${H}`)
+                .attr('width', '100%')
+                .attr('style', 'display:block');
+            svg.append('defs');
+        }
+
+        const defs = svg.select('defs');
+        const dur = 600;
 
         data.forEach((d, i) => {
             const y1 = padTop + i * stageH;
@@ -202,129 +347,137 @@ export default class LscMobileInline_hubStatus extends LightningElement {
             const topR = cx + hw1;
             const botL = cx - hw2;
             const botR = cx + hw2;
+            const pathD = `M${topL},${y1} L${topR},${y1} L${botR},${y2} L${botL},${y2} Z`;
 
             const gradId = 'fg-' + i;
-            const grad = defs.append('linearGradient').attr('id', gradId)
-                .attr('x1', '0').attr('y1', '0').attr('x2', '0').attr('y2', '1');
-            grad.append('stop').attr('offset', '0%').attr('stop-color', d.color).attr('stop-opacity', 0.95);
-            grad.append('stop').attr('offset', '100%').attr('stop-color', d3.color(d.color).brighter(0.3)).attr('stop-opacity', 0.9);
+            if (defs.select('#' + gradId).empty()) {
+                const grad = defs.append('linearGradient').attr('id', gradId)
+                    .attr('x1', '0').attr('y1', '0').attr('x2', '0').attr('y2', '1');
+                grad.append('stop').attr('offset', '0%').attr('stop-color', d.color).attr('stop-opacity', 0.95);
+                grad.append('stop').attr('offset', '100%').attr('stop-color', d3.color(d.color).brighter(0.3)).attr('stop-opacity', 0.9);
+            }
 
-            // Trapezoid: top = current width, bottom = next width
-            svg.append('path')
-                .attr('d', `M${topL},${y1} L${topR},${y1} L${botR},${y2} L${botL},${y2} Z`)
-                .attr('fill', `url(#${gradId})`);
+            // Trapezoid
+            let trap = svg.select('.trap-' + i);
+            if (trap.empty()) {
+                trap = svg.append('path').attr('class', 'trap-' + i).attr('fill', `url(#${gradId})`);
+            }
+            trap.transition().duration(dur).ease(d3.easeCubicInOut).attr('d', pathD);
 
-            // Thin separator line between stages
+            // Separator
             if (i < n - 1) {
-                svg.append('line')
-                    .attr('x1', botL).attr('y1', y2)
-                    .attr('x2', botR).attr('y2', y2)
-                    .attr('stroke', 'rgba(255,255,255,0.5)').attr('stroke-width', 1.5);
+                let sep = svg.select('.sep-' + i);
+                if (sep.empty()) {
+                    sep = svg.append('line').attr('class', 'sep-' + i)
+                        .attr('stroke', 'rgba(255,255,255,0.5)').attr('stroke-width', 1.5);
+                }
+                sep.transition().duration(dur).ease(d3.easeCubicInOut)
+                    .attr('x1', botL).attr('y1', y2).attr('x2', botR).attr('y2', y2);
             }
 
             // Count centered
             const midY = (y1 + y2) / 2;
-            svg.append('text')
-                .attr('x', cx)
-                .attr('y', midY + 6)
-                .attr('text-anchor', 'middle')
-                .attr('font-size', '16px')
-                .attr('font-weight', '800')
-                .attr('fill', '#ffffff')
-                .attr('font-family', font)
-                .text(d.value);
+            let countText = svg.select('.count-' + i);
+            if (countText.empty()) {
+                countText = svg.append('text').attr('class', 'count-' + i)
+                    .attr('x', cx).attr('y', midY + 6)
+                    .attr('text-anchor', 'middle')
+                    .attr('font-size', '16px').attr('font-weight', '800')
+                    .attr('fill', '#ffffff').attr('font-family', font);
+            }
+            countText.text(d.value);
 
-            // Label on left
-            svg.append('text')
-                .attr('x', labelX)
-                .attr('y', midY - 1)
-                .attr('text-anchor', 'end')
-                .attr('font-size', '10px')
-                .attr('font-weight', '700')
-                .attr('fill', '#181818')
-                .attr('font-family', font)
-                .text(d.label);
+            // Label on left (static position)
+            if (!isUpdate) {
+                svg.append('text')
+                    .attr('x', labelX).attr('y', midY - 1)
+                    .attr('text-anchor', 'end')
+                    .attr('font-size', '10px').attr('font-weight', '700')
+                    .attr('fill', '#181818').attr('font-family', font)
+                    .text(d.label);
+            }
 
-            const pct = topVal > 0 ? Math.round((d.value / topVal) * 100) : 0;
-            svg.append('text')
-                .attr('x', labelX)
-                .attr('y', midY + 10)
-                .attr('text-anchor', 'end')
-                .attr('font-size', '9px')
-                .attr('fill', '#706e6b')
-                .attr('font-family', font)
-                .text(pct + '%');
+            // Percentage
+            const pct = maxRef > 0 ? Math.round((d.value / maxRef) * 100) : 0;
+            let pctText = svg.select('.pct-' + i);
+            if (pctText.empty()) {
+                pctText = svg.append('text').attr('class', 'pct-' + i)
+                    .attr('x', labelX).attr('y', midY + 10)
+                    .attr('text-anchor', 'end')
+                    .attr('font-size', '9px').attr('fill', '#706e6b').attr('font-family', font);
+            }
+            pctText.text(pct + '%');
 
-            // Connector line from label to funnel edge
-            svg.append('line')
-                .attr('x1', labelX + 6).attr('y1', midY)
-                .attr('x2', topL + (botL - topL) * 0.5 - 4).attr('y2', midY)
-                .attr('stroke', '#d8d8d8').attr('stroke-width', 1)
-                .attr('stroke-dasharray', '3,3');
+            // Connector line
+            let conn = svg.select('.conn-' + i);
+            if (conn.empty()) {
+                conn = svg.append('line').attr('class', 'conn-' + i)
+                    .attr('y1', midY).attr('y2', midY)
+                    .attr('stroke', '#d8d8d8').attr('stroke-width', 1).attr('stroke-dasharray', '3,3');
+            }
+            conn.attr('x1', labelX + 6)
+                .transition().duration(dur).ease(d3.easeCubicInOut)
+                .attr('x2', topL + (botL - topL) * 0.5 - 4);
 
-            // Drop-off annotation on the right side
+            // Drop-off annotation
+            const dropSel = svg.select('.drop-group-' + i);
             if (d.drop && i < n - 1) {
                 const dropY = y2;
                 const rightEdge = (topR + botR) / 2;
                 const badgeX = rightEdge + 14;
-
-                svg.append('line')
-                    .attr('x1', rightEdge + 2).attr('y1', dropY)
-                    .attr('x2', badgeX - 2).attr('y2', dropY)
-                    .attr('stroke', '#ea001e').attr('stroke-width', 1)
-                    .attr('stroke-dasharray', '2,2');
-
                 const badgeText = '−' + d.drop;
                 const textW = d.drop.length * 5 + 16;
 
-                svg.append('rect')
-                    .attr('x', badgeX)
-                    .attr('y', dropY - 8)
-                    .attr('width', textW)
-                    .attr('height', 16)
-                    .attr('rx', 8)
-                    .attr('fill', '#fef1ee')
-                    .attr('stroke', '#fcd4cc')
-                    .attr('stroke-width', 0.5);
-
-                svg.append('text')
-                    .attr('x', badgeX + textW / 2)
+                let dropGroup = dropSel;
+                if (dropGroup.empty()) {
+                    dropGroup = svg.append('g').attr('class', 'drop-group-' + i);
+                    dropGroup.append('line').attr('class', 'drop-line')
+                        .attr('stroke', '#ea001e').attr('stroke-width', 1).attr('stroke-dasharray', '2,2');
+                    dropGroup.append('rect').attr('class', 'drop-rect')
+                        .attr('height', 16).attr('rx', 8)
+                        .attr('fill', '#fef1ee').attr('stroke', '#fcd4cc').attr('stroke-width', 0.5);
+                    dropGroup.append('text').attr('class', 'drop-text')
+                        .attr('text-anchor', 'middle')
+                        .attr('font-size', '8.5px').attr('font-weight', '700')
+                        .attr('fill', '#ea001e').attr('font-family', font);
+                }
+                dropGroup.style('opacity', 1);
+                dropGroup.select('.drop-line')
+                    .transition().duration(dur)
+                    .attr('x1', rightEdge + 2).attr('y1', dropY)
+                    .attr('x2', badgeX - 2).attr('y2', dropY);
+                dropGroup.select('.drop-rect')
+                    .transition().duration(dur)
+                    .attr('x', badgeX).attr('y', dropY - 8).attr('width', textW);
+                dropGroup.select('.drop-text')
                     .attr('y', dropY + 3)
-                    .attr('text-anchor', 'middle')
-                    .attr('font-size', '8.5px')
-                    .attr('font-weight', '700')
-                    .attr('fill', '#ea001e')
-                    .attr('font-family', font)
-                    .text(badgeText);
+                    .transition().duration(dur)
+                    .attr('x', badgeX + textW / 2);
+                dropGroup.select('.drop-text').text(badgeText);
+            } else if (!dropSel.empty()) {
+                dropSel.style('opacity', 0);
             }
         });
 
-        // Outer edge highlight (left and right sides of funnel)
-        const leftPath = data.map((d, i) => {
-            const y = padTop + i * stageH;
-            return `${cx - halfW(d.value)},${y}`;
-        });
-        const lastBot = padTop + n * stageH;
+        // Outer edge polylines
+        const leftPts = data.map((d, i) => `${cx - halfW(d.value)},${padTop + i * stageH}`);
         const lastHw = halfW(data[n - 1].value) * 0.85;
-        leftPath.push(`${cx - lastHw},${lastBot}`);
+        const lastBot = padTop + n * stageH;
+        leftPts.push(`${cx - lastHw},${lastBot}`);
 
-        const rightPath = data.map((d, i) => {
-            const y = padTop + i * stageH;
-            return `${cx + halfW(d.value)},${y}`;
-        });
-        rightPath.push(`${cx + lastHw},${lastBot}`);
+        const rightPts = data.map((d, i) => `${cx + halfW(d.value)},${padTop + i * stageH}`);
+        rightPts.push(`${cx + lastHw},${lastBot}`);
 
-        svg.append('polyline')
-            .attr('points', leftPath.join(' '))
-            .attr('fill', 'none')
-            .attr('stroke', 'rgba(0,0,0,0.08)')
-            .attr('stroke-width', 1);
-
-        svg.append('polyline')
-            .attr('points', rightPath.join(' '))
-            .attr('fill', 'none')
-            .attr('stroke', 'rgba(0,0,0,0.08)')
-            .attr('stroke-width', 1);
+        let leftLine = svg.select('.edge-left');
+        let rightLine = svg.select('.edge-right');
+        if (leftLine.empty()) {
+            leftLine = svg.append('polyline').attr('class', 'edge-left')
+                .attr('fill', 'none').attr('stroke', 'rgba(0,0,0,0.08)').attr('stroke-width', 1);
+            rightLine = svg.append('polyline').attr('class', 'edge-right')
+                .attr('fill', 'none').attr('stroke', 'rgba(0,0,0,0.08)').attr('stroke-width', 1);
+        }
+        leftLine.transition().duration(dur).attr('points', leftPts.join(' '));
+        rightLine.transition().duration(dur).attr('points', rightPts.join(' '));
     }
 
     renderedCallback() {
