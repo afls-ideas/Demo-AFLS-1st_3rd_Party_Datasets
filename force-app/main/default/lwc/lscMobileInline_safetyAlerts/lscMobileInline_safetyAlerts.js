@@ -4,6 +4,7 @@ import getDataByType from '@salesforce/apex/DemoDataLoader.getDataByType';
 
 export default class LscMobileInline_safetyAlerts extends LightningElement {
     @api recordId;
+    @api mobileHeight = 550;
     signals = [];
     aeCards = [];
     organChips = [];

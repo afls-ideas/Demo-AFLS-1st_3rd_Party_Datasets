@@ -6,6 +6,7 @@ const OUR_PRODUCT = 'Immunonco (US)';
 
 export default class LscMobileInline_accessStatus extends LightningElement {
     @api recordId;
+    @api mobileHeight = 550;
     signals = [];
     formularyCards = [];
     claimCards = [];

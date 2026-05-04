@@ -1,56 +1,61 @@
 <template>
-    <lightning-card title="SP Dispensing & Adherence" icon-name="standard:pharmacy">
-        <div slot="actions">
-            <template if:true={hasData}>
-                <lightning-badge label={headerBadge}></lightning-badge>
-            </template>
-        </div>
+    <div class="sp-root">
         <template if:false={hasData}>
             <div class="slds-p-around_medium slds-text-color_weak">No specialty pharmacy data available for this provider.</div>
         </template>
         <template if:true={hasData}>
+            <!-- Product Selector Row -->
+            <div class="product-bar">
+                <span class="product-title">SP Dispensing &amp; Adherence</span>
+                <lightning-combobox
+                    name="product"
+                    label="Product"
+                    value={selectedProduct}
+                    options={productOptions}
+                    onchange={handleProductChange}
+                    variant="label-hidden"
+                    class="product-picker"
+                ></lightning-combobox>
+                <template if:true={hasSignals}>
+                    <lightning-badge label={headerBadge} class="slds-m-left_small"></lightning-badge>
+                </template>
+            </div>
+
             <!-- Flow Diagram: Manufacturer → SPs -->
-            <template if:true={hasMultiplePharmacies}>
-                <div class="slds-p-horizontal_medium slds-p-top_small">
-                    <div class="flow-container">
-                        <div class="flow-mfg">
-                            <lightning-icon icon-name="standard:product_item" size="xx-small" variant="inverse"></lightning-icon>
-                            <span>Makana Pharma — Immunonco (US)</span>
-                        </div>
-                        <div class="flow-trunk"></div>
-                        <div class="flow-branch-bar"></div>
-                        <div class="flow-drops">
-                            <template for:each={flowCards} for:item="fc">
-                                <div key={fc.id} class="flow-drop"><div class="flow-drop-line"></div></div>
-                            </template>
-                        </div>
-                        <div class="flow-sp-grid">
-                            <template for:each={flowCards} for:item="fc">
-                                <div key={fc.id} class={fc.cardClass}>
-                                    <div class="flow-sp-name">{fc.name}</div>
-                                    <div class="flow-sp-payer">{fc.payer}</div>
-                                    <div class={fc.pdcValueClass}>{fc.pdcPct}</div>
-                                    <div class="flow-sp-pdc-label">adherence (PDC)</div>
-                                    <div class="flow-sp-meta">
-                                        <div class="flow-sp-stat">
-                                            <div class="flow-sp-stat-val">{fc.totalFills}</div>
-                                            <div class="flow-sp-stat-lbl">Fills</div>
-                                        </div>
-                                        <div class="flow-sp-stat">
-                                            <div class="flow-sp-stat-val">{fc.avgDays}d</div>
-                                            <div class="flow-sp-stat-lbl">Fill Time</div>
-                                        </div>
-                                        <div class="flow-sp-stat">
-                                            <div class="flow-sp-stat-val">{fc.abandonPct}</div>
-                                            <div class="flow-sp-stat-lbl">Abandon</div>
-                                        </div>
+            <div class="slds-p-horizontal_medium slds-p-top_small">
+                <div class="flow-container">
+                    <div class="flow-branch-bar"></div>
+                    <div class="flow-drops">
+                        <template for:each={flowCards} for:item="fc">
+                            <div key={fc.id} class="flow-drop"><div class="flow-drop-line"></div></div>
+                        </template>
+                    </div>
+                    <div class="flow-sp-grid">
+                        <template for:each={flowCards} for:item="fc">
+                            <div key={fc.id} class={fc.cardClass}>
+                                <div class="flow-sp-name">{fc.name}</div>
+                                <div class="flow-sp-payer">{fc.payer}</div>
+                                <div class={fc.pdcValueClass}>{fc.pdcPct}</div>
+                                <div class="flow-sp-pdc-label">adherence (PDC)</div>
+                                <div class="flow-sp-meta">
+                                    <div class="flow-sp-stat">
+                                        <div class="flow-sp-stat-val">{fc.totalFills}</div>
+                                        <div class="flow-sp-stat-lbl">Fills</div>
+                                    </div>
+                                    <div class="flow-sp-stat">
+                                        <div class="flow-sp-stat-val">{fc.avgDays}d</div>
+                                        <div class="flow-sp-stat-lbl">Fill Time</div>
+                                    </div>
+                                    <div class="flow-sp-stat">
+                                        <div class="flow-sp-stat-val">{fc.abandonPct}</div>
+                                        <div class="flow-sp-stat-lbl">Abandon</div>
                                     </div>
                                 </div>
-                            </template>
-                        </div>
+                            </div>
+                        </template>
                     </div>
                 </div>
-            </template>
+            </div>
 
             <!-- SP Channel Comparison Table -->
             <template if:true={hasMultiplePharmacies}>
@@ -112,8 +117,8 @@
             <!-- Detail Table -->
             <div class="slds-p-horizontal_medium slds-p-vertical_medium">
                 <div class="section-header">Dispensing Detail</div>
-                <lightning-datatable key-field="id" data={tableData} columns={columns} hide-checkbox-column></lightning-datatable>
+                <lightning-datatable key-field="id" data={filteredTableData} columns={columns} hide-checkbox-column></lightning-datatable>
             </div>
         </template>
-    </lightning-card>
+    </div>
 </template>

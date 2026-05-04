@@ -5,6 +5,7 @@ import getDataForAccount from '@salesforce/apex/DemoDataLoader.getDataForAccount
 
 export default class LscMobileInline_hubStatus extends LightningElement {
     @api recordId;
+    @api mobileHeight = 550;
     signals = [];
     hasData = false;
     latestSnapshot = null;

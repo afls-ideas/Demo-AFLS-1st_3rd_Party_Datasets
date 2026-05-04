@@ -13,5 +13,8 @@
         <targetConfig targets="lightning__RecordAction">
             <actionType>ScreenAction</actionType>
         </targetConfig>
+        <targetConfig targets="lightning__RecordPage">
+            <property name="mobileHeight" type="Integer" default="550" label="Mobile Height" description="Height in pixels for mobile display" />
+        </targetConfig>
     </targetConfigs>
 </LightningComponentBundle>

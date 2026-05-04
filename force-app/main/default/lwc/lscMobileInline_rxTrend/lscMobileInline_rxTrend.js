@@ -5,6 +5,7 @@ const OUR_PRODUCT = 'Immunonco (US)';
 
 export default class LscMobileInline_rxTrend extends LightningElement {
     @api recordId;
+    @api mobileHeight = 550;
     signals = [];
     tableData = [];
     hasData = false;

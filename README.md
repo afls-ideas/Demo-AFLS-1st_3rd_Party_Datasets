@@ -60,7 +60,7 @@ Full multi-dataset scenario covering the Immunonco launch in the SF Bay Area. Se
 | Static Resource | Type | Rows | Description |
 |---|---|---|---|
 | `demo_prescription_oncology_usw_sf` | prescription | 66 | TRx/NRx by HCP, product, payer segment |
-| `demo_specialty_pharmacy_oncology_usw_sf` | specialty_pharmacy | 31 | 4 SP channels per HCP: fills, PDC, abandonment, copay |
+| `demo_specialty_pharmacy_oncology_usw_sf` | specialty_pharmacy | 53 | 2–4 SP channels per HCP: fills, PDC, abandonment, copay |
 | `demo_claims_oncology_usw_sf` | claims | 22 | Part B buy-and-bill + pharmacy benefit claims |
 | `demo_formulary_oncology_usw_sf` | formulary | 15 | Formulary status across 6 payers |
 | `demo_patient_journey_oncology_usw_sf` | patient_journey | 18 | Hub funnel: referral → verified → approved → started → on therapy |
@@ -73,7 +73,7 @@ Five visualization components for Account record pages. Each detects signals and
 | Component | Label | Data Type | Key Visual |
 |---|---|---|---|
 | `lscMobileInline_rxTrend` | Demo AFLS Prescribing Snapshot | prescription | Product bar chart, trend pills, competitive signals |
-| `lscMobileInline_spDispensing` | Demo AFLS Specialty Pharmacy Channel | specialty_pharmacy | Manufacturer→SP flow diagram, ranked comparison table |
+| `lscMobileInline_spDispensing` | Demo AFLS Specialty Pharmacy Channel | specialty_pharmacy | Product selector, SP channel cards, ranked comparison table |
 | `lscMobileInline_hubStatus` | Demo AFLS Patient Journey Hub Status | patient_journey | D3.js funnel chart, outcome KPIs, period trend table |
 | `lscMobileInline_accessStatus` | Demo AFLS Access and Formulary Status | claims + formulary | Formulary cards, claims history, P&T alerts |
 | `lscMobileInline_safetyAlerts` | Demo AFLS Safety and Medical Events | medical_event | AE grade badges, organ system chips, safety signals |

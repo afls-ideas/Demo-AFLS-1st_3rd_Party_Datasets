@@ -3,11 +3,15 @@ import getDataForAccount from '@salesforce/apex/DemoDataLoader.getDataForAccount
 
 export default class LscMobileInline_spDispensing extends LightningElement {
     @api recordId;
+    @api mobileHeight = 550;
     signals = [];
     tableData = [];
     hasData = false;
     flowCards = [];
     compareRows = [];
+    selectedProduct = '';
+    productOptions = [];
+    _allParsed = [];
 
     columns = [
         { label: 'Pharmacy', fieldName: 'pharmacy_name', type: 'text' },
@@ -24,13 +28,17 @@ export default class LscMobileInline_spDispensing extends LightningElement {
     wiredData({ error, data }) {
         if (data && data.length) {
             this.hasData = true;
-            this.tableData = data.map((rec, idx) => {
+            this._allParsed = data.map((rec, idx) => {
                 const parsed = JSON.parse(rec.Payload__c);
                 return { ...parsed, id: rec.Id || String(idx) };
             });
-            this.processAll();
+            const products = [...new Set(this._allParsed.map(r => r.product || 'Unknown'))];
+            this.productOptions = products.map(p => ({ label: p, value: p }));
+            this.selectedProduct = products[0] || '';
+            this.processForProduct();
         } else {
             this.hasData = false;
+            this._allParsed = [];
             this.tableData = [];
             this.signals = [];
             this.flowCards = [];
@@ -38,9 +46,24 @@ export default class LscMobileInline_spDispensing extends LightningElement {
         }
     }
 
-    processAll() {
+    handleProductChange(event) {
+        this.selectedProduct = event.detail.value;
+        this.processForProduct();
+    }
+
+    get filteredTableData() {
+        return this.tableData;
+    }
+
+    processForProduct() {
+        const rows = this._allParsed.filter(r => (r.product || 'Unknown') === this.selectedProduct);
+        this.tableData = rows;
+        this.processAll(rows);
+    }
+
+    processAll(data) {
         const byPharmacy = {};
-        this.tableData.forEach(r => {
+        data.forEach(r => {
             const name = r.pharmacy_name || 'Unknown';
             if (!byPharmacy[name]) byPharmacy[name] = { rows: [], payer: r.payer_segment || '' };
             byPharmacy[name].rows.push(r);
@@ -53,10 +76,8 @@ export default class LscMobileInline_spDispensing extends LightningElement {
             const rows = byPharmacy[name].rows.sort((a, b) => a.period.localeCompare(b.period));
             const totalFills = rows.reduce((s, r) => s + (r.fills || 0), 0);
             const latest = rows[rows.length - 1];
-            const avgTtf = rows.filter(r => r.avg_days_to_fill != null).reduce((s, r) => s + r.avg_days_to_fill, 0) /
-                (rows.filter(r => r.avg_days_to_fill != null).length || 1);
             spStats[name] = {
-                rows, totalFills, latest, avgTtf,
+                rows, totalFills, latest,
                 payer: byPharmacy[name].payer,
                 latestPdc: latest.adherence_pdc,
                 latestAbandon: latest.abandonment_rate,
@@ -128,6 +149,7 @@ export default class LscMobileInline_spDispensing extends LightningElement {
 
     detectSignals(spStats, ranked) {
         const detected = [];
+        const product = this.selectedProduct;
 
         if (ranked.length >= 2) {
             const best = spStats[ranked[0]];
@@ -139,7 +161,7 @@ export default class LscMobileInline_spDispensing extends LightningElement {
                         level: 'error', icon: 'utility:warning',
                         label: 'Channel Performance Gap',
                         message: `${ranked[ranked.length - 1]} (${(worst.latestPdc * 100).toFixed(0)}% PDC) is ${(gap * 100).toFixed(0)} points behind ${ranked[0]} (${(best.latestPdc * 100).toFixed(0)}%) — ${worst.payer} patients getting worse outcomes`,
-                        action: `Escalate ${ranked[ranked.length - 1]} performance to trade/channel team. Patients on ${worst.payer} should be enrolled in the Immunonco Patient Support Program for adherence reminders and community support.`,
+                        action: `Escalate ${ranked[ranked.length - 1]} performance to trade/channel team. Patients on ${worst.payer} should be enrolled in the ${product} Patient Support Program for adherence reminders and community support.`,
                         id: 'sig-disparity'
                     });
                 }
@@ -154,7 +176,7 @@ export default class LscMobileInline_spDispensing extends LightningElement {
                     icon: 'utility:trending_down',
                     label: `Low Adherence — ${name}`,
                     message: `PDC at ${(s.latestPdc * 100).toFixed(0)}% for ${s.payer} patients — risk of treatment gaps`,
-                    action: `Discuss with HCP: refer ${s.payer} patients to the Immunonco Patient Support Program (PSP). PSP provides automated refill reminders, nurse check-ins, and peer community support to improve adherence.`,
+                    action: `Discuss with HCP: refer ${s.payer} patients to the ${product} Patient Support Program (PSP). PSP provides automated refill reminders, nurse check-ins, and peer community support to improve adherence.`,
                     id: 'sig-pdc-' + name.replace(/\s/g, '')
                 });
             }

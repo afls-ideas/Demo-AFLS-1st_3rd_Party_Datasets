@@ -1,3 +1,28 @@
+/* Root */
+.sp-root {
+    padding: 0;
+}
+
+/* Product Bar */
+.product-bar {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    background: #fafbfc;
+    border-bottom: 1px solid #e5e5e5;
+}
+.product-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #181818;
+    margin-right: 0.75rem;
+    white-space: nowrap;
+}
+.product-picker {
+    min-width: 160px;
+    max-width: 240px;
+}
+
 /* Signals */
 .signal-banner {
     display: flex;

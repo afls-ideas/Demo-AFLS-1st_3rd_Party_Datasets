@@ -9,7 +9,7 @@ LWC component that visualizes specialty pharmacy dispensing performance across m
 
 ## What It Shows
 
-- **Distribution Flow Diagram:** Manufacturer (Makana Pharma) at top with branch lines flowing to each SP channel below, showing how patients are distributed across pharmacies by payer
+- **Product Selector:** Dropdown to filter by product (supports multi-product portfolios)
 - **SP Channel Cards:** Each pharmacy displayed with PDC adherence hero number, total fills, fill time, abandonment rate, color-coded by performance tier
 - **SP Comparison Table:** Ranked table with PDC bar charts, fill metrics, copay status — lets the rep compare channels at a glance
 - **Detail Table:** Lightning-datatable with per-period dispensing metrics
@@ -31,42 +31,55 @@ Each signal recommends Patient Support Program (PSP) enrollment for low-adherenc
 
 ### Dr. Lisa Thornton — Multi-Channel with Diverging Performance
 
-- **Channels:** Optum Specialty, CVS Specialty, Accredo Specialty, AllianceRx Walgreens (4 SPs)
-- **Optum (primary):** PDC 0.94 → 0.95 → 0.96, abandonment 4% → 2%, fills 3 → 7. Top-tier performance.
-- **CVS:** PDC 0.86 → 0.83 → 0.78, abandonment 12% → 20%, copay dropped in Feb 2026. Deteriorating channel.
-- **Accredo:** PDC 0.91 → 0.92 → 0.93, abandonment 6% → 4%. Steady performer.
-- **AllianceRx:** PDC 0.88 → 0.89 → 0.91, abandonment 10% → 6%. Improving.
-- **Expected signals:** Channel Performance Gap (Optum 0.96 vs CVS 0.78 = 18pt gap), Low Adherence (CVS < 80%), High Abandonment (CVS 20%), Copay Dropped (CVS), Top Channel (Optum)
-- **Demo story:** Richest multi-channel view. Optum is the gold standard, CVS is collapsing — copay assistance dropped and patients are abandoning. Rep should escalate CVS channel issues and recommend PSP enrollment for CVS patients.
+- **Channels:** Optum Specialty, ABC Pharmacy, Accredo Specialty, AllianceRx Walgreens (4 SPs)
+- **Optum (primary):** PDC 0.94 → 0.96, abandonment 4% → 2%, fills 3 → 7. Top-tier performance.
+- **ABC Pharmacy:** PDC 0.86 → 0.78, abandonment 12% → 20%, copay dropped Feb 2026. Deteriorating channel.
+- **Accredo:** PDC 0.91 → 0.93, abandonment 6% → 4%. Steady performer.
+- **AllianceRx:** PDC 0.88 → 0.91, abandonment 10% → 6%. Improving.
+- **Expected signals:** Channel Performance Gap (Optum 0.96 vs ABC 0.78 = 18pt gap), Low Adherence (ABC < 80%), High Abandonment (ABC 20%), Copay Dropped (ABC), Top Channel (Optum)
+- **Demo story:** Richest multi-channel view. Optum is the gold standard, ABC Pharmacy is collapsing — copay assistance dropped and patients are abandoning. Rep should escalate ABC channel issues and recommend PSP enrollment for ABC patients.
 
-### Dr. Matthew Wong — Single Channel Decline
+### Dr. Matthew Wong — Multi-Channel with One Declining
 
-- **Channel:** CVS Specialty only
-- **CVS:** PDC 0.88 → 0.91 → 0.82 → 0.78 → 0.74, abandonment 10% → 22%, copay dropped Feb 2026
-- **Expected signals:** Low Adherence (PDC < 80%), High Abandonment (22%), Copay Dropped
-- **Demo story:** Mirrors his prescribing collapse. CVS adherence and abandonment track his safety-event-driven pullback. Copay assistance stopped as patients discontinued. The SP data corroborates the access collapse narrative visible in the Rx trend.
+- **Channels:** ABC Pharmacy, Optum Specialty, Accredo Specialty (3 SPs)
+- **ABC Pharmacy (Aetna):** PDC 0.88 → 0.91 → 0.82 → 0.74, abandonment 10% → 22%, copay dropped Feb 2026. Collapsing.
+- **Optum (UHC):** PDC 0.92 → 0.93 → 0.94, abandonment 5% → 3%. Strong and improving.
+- **Accredo (Cigna):** PDC 0.89 → 0.90 → 0.91, abandonment 9% → 6%. Steady mid-tier.
+- **Expected signals:** Channel Performance Gap (Optum 0.94 vs ABC 0.74 = 20pt gap), Low Adherence (ABC < 80%), High Abandonment (ABC 22%), Copay Dropped (ABC)
+- **Demo story:** ABC Pharmacy mirrors his prescribing collapse on the Aetna book. Optum and Accredo patients are fine — the problem is payer-specific, not HCP-wide. The SP data lets the rep pinpoint the channel that needs intervention.
 
-### Dr. Kevin Patel — Kaiser Closed Pharmacy
+### Dr. Kevin Patel — Three Channels, Wide Performance Spread
 
-- **Channel:** Kaiser Specialty Pharmacy only
-- **Kaiser:** PDC 0.70 → 0.75 → 0.78 → 0.80, abandonment 25% → 15%, copay started Feb 2026
-- **Expected signals:** Low Adherence (PDC < 85%), High Abandonment (25% initially, improving)
-- **Demo story:** Kaiser's closed pharmacy system has the lowest adherence in the territory but is slowly improving. High initial abandonment driven by formulary step therapy requirements. Copay assistance recently activated — a positive sign. This channel is constrained by the Kaiser formulary blocker, not by pharmacy performance.
+- **Channels:** Kaiser Specialty, ABC Pharmacy, Optum Specialty (3 SPs)
+- **Kaiser (closed system):** PDC 0.70 → 0.80, abandonment 25% → 15%, copay started Feb 2026. Improving but constrained by formulary.
+- **ABC Pharmacy (Anthem):** PDC 0.65 → 0.72, abandonment 30% → 24%. Worst channel in territory.
+- **Optum (UHC):** PDC 0.87 → 0.90 → 0.92, abandonment 8% → 4%. Strong performer.
+- **Expected signals:** Channel Performance Gap (Optum 0.92 vs ABC 0.72 = 20pt gap), Low Adherence (Kaiser, ABC), High Abandonment (ABC 24%, Kaiser), Slow Fill (ABC 7–9 days)
+- **Demo story:** Optum patients do well; Kaiser is improving but formulary-constrained; ABC is the worst channel in the territory with the slowest fills and highest abandonment. Three very different stories for the same HCP.
 
-### Dr. Brian Sullivan — Stable Single Channel
+### Dr. Brian Sullivan — Three Channels, ABC Deteriorating
 
-- **Channel:** Accredo Specialty Pharmacy only
-- **Accredo:** PDC 0.85 → 0.88 → 0.88 → 0.90, abandonment 12% → 8%, copay active throughout
-- **Expected signals:** None critical — PDC borderline (just at 85% threshold), gradually improving
-- **Demo story:** Low-volume but stable. His few Immunonco patients are well-managed through Accredo. Consistent copay assistance. No alarming trends — this reflects his cautious, small-scale adoption.
+- **Channels:** Accredo Specialty, ABC Pharmacy, AllianceRx Walgreens (3 SPs)
+- **Accredo (Cigna):** PDC 0.85 → 0.90, abandonment 12% → 8%. Steady improvement.
+- **ABC Pharmacy (Anthem):** PDC 0.79 → 0.75 → 0.72 → 0.70, abandonment 18% → 28%, copay dropped Dec 2025. Actively deteriorating.
+- **AllianceRx (Blue Shield CA):** PDC 0.86 → 0.89 → 0.91, abandonment 8% → 5%. Improving.
+- **Expected signals:** Channel Performance Gap (AllianceRx 0.91 vs ABC 0.70 = 21pt gap), Low Adherence (ABC < 80%), High Abandonment (ABC 28%), Slow Fill (ABC 7–10 days), Copay Dropped (ABC)
+- **Demo story:** Sullivan's ABC Pharmacy channel is the worst in his panel and getting worse — fill times up to 10 days, abandonment at 28%, copay dropped. Accredo and AllianceRx patients are doing fine. The rep should escalate ABC Pharmacy and redirect Anthem patients to a better channel.
 
-### Dr. Nina Chandra — VA Gold Standard
+### Dr. Nina Chandra — VA Primary + Medi-Cal Secondary
 
-- **Channel:** VA Consolidated Mail Outpatient Pharmacy (CMOP) only
-- **VA CMOP:** PDC 0.95 → 0.96 → 0.97 → 0.98 → 0.98, abandonment 2% → 1%, no copay needed (340B)
-- **Expected signals:** Top Channel (PDC 0.98, abandonment 1%)
-- **Demo story:** Near-perfect adherence, zero cost barriers. VA's 340B ceiling pricing eliminates patient financial burden. CMOP is the highest-performing channel in the territory. This is what frictionless access looks like — no PA, no copay, no abandonment. The benchmark against which all other channels should be measured.
+- **Channels:** VA CMOP, Accredo Specialty (2 SPs)
+- **VA CMOP:** PDC 0.95 → 0.98, abandonment 2% → 1%, no copay needed (340B). Gold standard.
+- **Accredo (Medi-Cal):** PDC 0.91 → 0.93 → 0.94, abandonment 5% → 3%. Strong secondary channel.
+- **Expected signals:** Top Channel (VA CMOP — PDC 0.98, abandonment 1%)
+- **Demo story:** Both channels performing well. VA CMOP is the benchmark for the territory. Medi-Cal patients through Accredo also show strong adherence. This is what frictionless access looks like.
 
 ## Placement
 
-Add to Account record page (Person Account / HCP). Targets: `lightning__RecordPage`, `lightning__Tab`.
+Add to Account record page (Person Account / HCP). Targets: `lightning__RecordPage`, `lightning__Tab`, `lightning__RecordAction`.
+
+## Properties
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `mobileHeight` | Integer | 550 | Height in pixels for mobile display |
