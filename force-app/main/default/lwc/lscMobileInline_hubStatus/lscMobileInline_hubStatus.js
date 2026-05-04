@@ -192,31 +192,6 @@ export default class LscMobileInline_hubStatus extends LightningElement {
         }
     }
 
-    handleStepBack() {
-        this._stopPlayback();
-        if (this._periodIndex > 0) {
-            this._periodIndex--;
-            this._updatePeriodUI();
-            this.processAll();
-        }
-    }
-
-    handleStepForward() {
-        this._stopPlayback();
-        if (this._periodIndex < this._sortedPeriods.length - 1) {
-            this._periodIndex++;
-            this._updatePeriodUI();
-            this.processAll();
-        }
-    }
-
-    handleSliderChange(event) {
-        this._stopPlayback();
-        this._periodIndex = parseInt(event.target.value, 10);
-        this._updatePeriodUI();
-        this.processAll();
-    }
-
     _startPlayback() {
         if (this._sortedPeriods.length <= 1) return;
         this._playing = true;
@@ -248,33 +223,41 @@ export default class LscMobileInline_hubStatus extends LightningElement {
         }
     }
 
-    get sliderMax() {
-        return Math.max(this._sortedPeriods.length - 1, 0);
-    }
-
-    get sliderValue() {
-        return this._periodIndex;
-    }
-
     get playIcon() {
         return this._playing ? 'utility:pause' : 'utility:right';
     }
 
-    get isAtStart() {
-        return this._periodIndex === 0;
-    }
-
-    get isAtEnd() {
-        return this._periodIndex >= this._sortedPeriods.length - 1;
+    get playButtonClass() {
+        return this._playing ? 'play-button playing' : 'play-button';
     }
 
     get periodDots() {
-        return this._sortedPeriods.map((p, i) => ({
-            key: p.period,
-            label: p.period,
-            dotClass: i === this._periodIndex ? 'period-dot active' : 'period-dot',
-            idx: i
-        }));
+        const max = Math.max(this._sortedPeriods.length - 1, 1);
+        return this._sortedPeriods.map((p, i) => {
+            const pct = (i / max) * 100;
+            const isActive = i === this._periodIndex;
+            const isPast = i < this._periodIndex;
+            let cls = 'tl-dot';
+            if (isActive) cls += ' tl-dot-active';
+            else if (isPast) cls += ' tl-dot-past';
+            const parts = p.period.split('-');
+            const short = parts.length >= 2 ? parts[1] + '/' + parts[0].slice(2) : p.period;
+            return {
+                key: p.period,
+                label: p.period,
+                shortLabel: short,
+                dotClass: cls,
+                labelClass: isActive ? 'tl-label tl-label-active' : 'tl-label',
+                posStyle: `left: ${pct}%`,
+                idx: i
+            };
+        });
+    }
+
+    get timelineProgressStyle() {
+        const max = Math.max(this._sortedPeriods.length - 1, 1);
+        const pct = (this._periodIndex / max) * 100;
+        return `width: ${pct}%`;
     }
 
     handleDotClick(event) {

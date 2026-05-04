@@ -9,84 +9,93 @@
             <div class="slds-p-around_medium slds-text-color_weak">No patient journey data available for this provider.</div>
         </template>
         <template if:true={hasData}>
-            <!-- Playback Controls -->
+
+            <!-- Timeline Bar -->
             <template if:true={showPlayback}>
                 <div class="slds-p-horizontal_medium slds-p-top_small">
-                    <div class="playback-bar">
-                        <button class="play-btn" onclick={handleStepBack} disabled={isAtStart} title="Previous period">
-                            <lightning-icon icon-name="utility:chevronleft" size="xx-small"></lightning-icon>
-                        </button>
-                        <button class="play-btn play-btn-main" onclick={handlePlayPause} title={playLabel}>
-                            <lightning-icon icon-name={playIcon} size="xx-small"></lightning-icon>
-                        </button>
-                        <button class="play-btn" onclick={handleStepForward} disabled={isAtEnd} title="Next period">
-                            <lightning-icon icon-name="utility:chevronright" size="xx-small"></lightning-icon>
-                        </button>
-                        <div class="period-timeline">
+                    <div class="timeline-bar">
+                        <div class="timeline-track">
+                            <div class="timeline-rail">
+                                <div class="timeline-progress" style={timelineProgressStyle}></div>
+                            </div>
                             <template for:each={periodDots} for:item="dot">
                                 <button key={dot.key} class={dot.dotClass} data-idx={dot.idx}
-                                    onclick={handleDotClick} title={dot.label}></button>
+                                    onclick={handleDotClick} style={dot.posStyle}>
+                                    <span class={dot.labelClass}>{dot.shortLabel}</span>
+                                </button>
                             </template>
                         </div>
-                        <span class="period-label">{currentPeriodLabel}</span>
+                        <button class={playButtonClass} onclick={handlePlayPause}>
+                            <lightning-icon icon-name={playIcon} size="xx-small" class="play-icon"></lightning-icon>
+                            <span>{playLabel}</span>
+                        </button>
                     </div>
                 </div>
             </template>
 
-            <!-- D3 Funnel -->
+            <!-- Two-column: Funnel + KPIs on left, Signals on right -->
             <template if:true={hasSnapshot}>
                 <div class="slds-p-horizontal_medium slds-p-top_small">
-                    <div class="section-header">Patient Funnel — {latestSnapshot.period}</div>
-                    <div class="funnel-svg-wrap">
-                        <div lwc:dom="manual" class="funnel-chart"></div>
-                    </div>
-                </div>
+                    <div class="main-layout">
 
-                <!-- Outcome KPIs -->
-                <div class="slds-p-horizontal_medium slds-p-top_medium">
-                    <div class="section-header">Key Outcomes</div>
-                    <div class="outcome-grid">
-                        <div class={kpi.persistCardClass}>
-                            <div class="outcome-value">{kpi.persistency}</div>
-                            <div class="outcome-label">Persistency</div>
-                            <div class="outcome-sub">{kpi.persistStatus}</div>
-                        </div>
-                        <div class={kpi.paCardClass}>
-                            <div class="outcome-value">{kpi.paAvgDays}d</div>
-                            <div class="outcome-label">PA Decision Time</div>
-                            <div class="outcome-sub">{kpi.paStatus}</div>
-                        </div>
-                        <div class={kpi.conversionCardClass}>
-                            <div class="outcome-value">{kpi.conversion}</div>
-                            <div class="outcome-label">Funnel Conversion</div>
-                            <div class="outcome-sub">{kpi.conversionStatus}</div>
-                        </div>
-                        <div class={kpi.enrollCardClass}>
-                            <div class="outcome-value">{kpi.enrollDelta}</div>
-                            <div class="outcome-label">Enrollment Trend</div>
-                            <div class="outcome-sub">{kpi.enrollSub}</div>
-                        </div>
-                    </div>
-                </div>
-            </template>
-
-            <!-- Signals -->
-            <template if:true={hasSignals}>
-                <div class="slds-p-horizontal_medium slds-p-top_medium">
-                    <div class="section-header">Signals & Recommended Actions</div>
-                    <template for:each={signals} for:item="sig">
-                        <div key={sig.id} class={sig.bannerClass}>
-                            <div class="signal-header">
-                                <lightning-icon icon-name={sig.icon} size="x-small" class="slds-m-right_x-small"></lightning-icon>
-                                <span class="slds-text-body_small"><strong>{sig.label}:</strong> {sig.message}</span>
+                        <!-- Left column: Funnel + KPIs -->
+                        <div class="col-funnel">
+                            <div class="section-header">Patient Funnel — {latestSnapshot.period}</div>
+                            <div class="funnel-svg-wrap">
+                                <div lwc:dom="manual" class="funnel-chart"></div>
                             </div>
-                            <div class="signal-action">Next Step: {sig.action}</div>
+
+                            <div class="slds-p-top_medium">
+                                <div class="section-header">Key Outcomes</div>
+                                <div class="outcome-grid">
+                                    <div class={kpi.persistCardClass}>
+                                        <div class="outcome-value">{kpi.persistency}</div>
+                                        <div class="outcome-label">Persistency</div>
+                                        <div class="outcome-sub">{kpi.persistStatus}</div>
+                                    </div>
+                                    <div class={kpi.paCardClass}>
+                                        <div class="outcome-value">{kpi.paAvgDays}d</div>
+                                        <div class="outcome-label">PA Decision Time</div>
+                                        <div class="outcome-sub">{kpi.paStatus}</div>
+                                    </div>
+                                    <div class={kpi.conversionCardClass}>
+                                        <div class="outcome-value">{kpi.conversion}</div>
+                                        <div class="outcome-label">Funnel Conversion</div>
+                                        <div class="outcome-sub">{kpi.conversionStatus}</div>
+                                    </div>
+                                    <div class={kpi.enrollCardClass}>
+                                        <div class="outcome-value">{kpi.enrollDelta}</div>
+                                        <div class="outcome-label">Enrollment Trend</div>
+                                        <div class="outcome-sub">{kpi.enrollSub}</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </template>
+
+                        <!-- Right column: Signals -->
+                        <div class="col-signals">
+                            <div class="section-header">Signals & Actions</div>
+                            <template if:true={hasSignals}>
+                                <template for:each={signals} for:item="sig">
+                                    <div key={sig.id} class={sig.bannerClass}>
+                                        <div class="signal-header">
+                                            <lightning-icon icon-name={sig.icon} size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                            <span class="slds-text-body_small"><strong>{sig.label}:</strong> {sig.message}</span>
+                                        </div>
+                                        <div class="signal-action">Next Step: {sig.action}</div>
+                                    </div>
+                                </template>
+                            </template>
+                            <template if:false={hasSignals}>
+                                <div class="no-signals">No signals detected for this period.</div>
+                            </template>
+                        </div>
+
+                    </div>
                 </div>
             </template>
 
-            <!-- Period Trend Table -->
+            <!-- Period Trend Table (full width below) -->
             <template if:true={hasTrendData}>
                 <div class="slds-p-around_medium">
                     <div class="section-header">Period-over-Period</div>
