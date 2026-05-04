@@ -1,0 +1,86 @@
+<template>
+    <lightning-card title="Safety & Medical Events" icon-name="standard:med_rec_statement">
+        <div slot="actions">
+            <template if:true={hasData}>
+                <lightning-badge label={headerBadge}></lightning-badge>
+            </template>
+        </div>
+        <template if:false={hasData}>
+            <div class="slds-p-around_medium slds-text-color_weak">No safety or medical event data available for this provider.</div>
+        </template>
+        <template if:true={hasData}>
+            <!-- KPI Cards -->
+            <div class="slds-p-horizontal_medium slds-p-top_small">
+                <div class="kpi-grid">
+                    <div class={kpi.totalCardClass}>
+                        <div class="kpi-value">{kpi.totalAE}</div>
+                        <div class="kpi-label">Total AEs</div>
+                        <div class="kpi-sub">all grades</div>
+                    </div>
+                    <div class={kpi.seriousCardClass}>
+                        <div class="kpi-value">{kpi.serious}</div>
+                        <div class="kpi-label">Serious</div>
+                        <div class="kpi-sub">Grade 3+</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-value">{kpi.organSystems}</div>
+                        <div class="kpi-label">Organ Systems</div>
+                        <div class="kpi-sub">affected</div>
+                    </div>
+                    <div class={kpi.signalCardClass}>
+                        <div class="kpi-value">{kpi.signalCount}</div>
+                        <div class="kpi-label">Active Signals</div>
+                        <div class="kpi-sub">need attention</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Organ System Chips -->
+            <template if:true={hasOrganChips}>
+                <div class="slds-p-horizontal_medium slds-p-top_small">
+                    <div class="section-header">Affected Organ Systems</div>
+                    <div>
+                        <template for:each={organChips} for:item="chip">
+                            <span key={chip.id} class={chip.chipClass}>{chip.label}</span>
+                        </template>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Signals -->
+            <template if:true={hasSignals}>
+                <div class="slds-p-horizontal_medium slds-p-top_medium">
+                    <div class="section-header">Signals & Recommended Actions</div>
+                    <template for:each={signals} for:item="sig">
+                        <div key={sig.id} class={sig.bannerClass}>
+                            <div class="signal-header">
+                                <lightning-icon icon-name={sig.icon} size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                <span class="slds-text-body_small"><strong>{sig.label}:</strong> {sig.message}</span>
+                            </div>
+                            <div class="signal-action">Next Step: {sig.action}</div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            <!-- AE Timeline Cards -->
+            <template if:true={totalCount}>
+                <div class="slds-p-around_medium">
+                    <div class="section-header">Adverse Event History</div>
+                    <template for:each={aeCards} for:item="ae">
+                        <div key={ae.id} class={ae.cardClass}>
+                            <div>
+                                <div class="ae-name">{ae.event}</div>
+                                <div class="ae-detail">{ae.organ_system} | {ae.period} | Cycle {ae.cycle} | {ae.outcome}</div>
+                                <template if:true={ae.management}>
+                                    <div class="ae-detail">Mgmt: {ae.management}</div>
+                                </template>
+                            </div>
+                            <div class={ae.gradeClass}>{ae.grade}</div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+        </template>
+    </lightning-card>
+</template>

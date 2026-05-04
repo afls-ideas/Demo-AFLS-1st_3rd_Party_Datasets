@@ -64,7 +64,7 @@ public with sharing class DemoDataLoader {
             String jsonBody = sr.Body.toString();
             List<Object> rawRecords = (List<Object>) JSON.deserializeUntyped(jsonBody);
 
-            Map<String, Id> accountMap = resolveAccounts(rawRecords);
+            Map<String, Id> nameMap = resolveAccountsByName(rawRecords);
 
             List<Demo_Data__c> records = new List<Demo_Data__c>();
             for (Object rawRecord : rawRecords) {
@@ -83,10 +83,10 @@ public with sharing class DemoDataLoader {
                     rec.Period__c = Date.valueOf(periodStr);
                 }
 
-                String npi = payload.containsKey('npi')
-                    ? String.valueOf(payload.get('npi')) : null;
-                if (npi != null && accountMap.containsKey(npi)) {
-                    rec.Account__c = accountMap.get(npi);
+                String hcpName = payload.containsKey('hcp_name')
+                    ? String.valueOf(payload.get('hcp_name')) : null;
+                if (hcpName != null && nameMap.containsKey(hcpName.toLowerCase())) {
+                    rec.Account__c = nameMap.get(hcpName.toLowerCase());
                 }
 
                 records.add(rec);
@@ -157,47 +157,70 @@ public with sharing class DemoDataLoader {
         return count;
     }
 
-    private static Map<String, Id> resolveAccounts(List<Object> rawRecords) {
-        Set<String> npis = new Set<String>();
+    private static Map<String, Id> resolveAccountsByName(List<Object> rawRecords) {
+        Set<String> names = new Set<String>();
         for (Object rawRecord : rawRecords) {
             Map<String, Object> payload = (Map<String, Object>) rawRecord;
-            if (payload.containsKey('npi')) {
-                npis.add(String.valueOf(payload.get('npi')));
+            if (payload.containsKey('hcp_name')) {
+                names.add(String.valueOf(payload.get('hcp_name')));
             }
         }
 
-        Map<String, Id> accountMap = new Map<String, Id>();
-        if (!npis.isEmpty()) {
+        Map<String, Id> nameMap = new Map<String, Id>();
+        if (!names.isEmpty()) {
             for (Account a : [
-                SELECT Id, NPI_Number__c FROM Account
-                WHERE NPI_Number__c IN :npis
+                SELECT Id, Name FROM Account
+                WHERE Name IN :names
             ]) {
-                accountMap.put(a.NPI_Number__c, a.Id);
+                nameMap.put(a.Name.toLowerCase(), a.Id);
             }
         }
-        return accountMap;
+        return nameMap;
     }
 
     @TestVisible
     private static String buildExternalKey(String dataType, Map<String, Object> payload) {
+        String identifier = payload.containsKey('hcp_name')
+            ? String.valueOf(payload.get('hcp_name'))
+            : 'unknown';
+
         if (dataType == 'prescription') {
-            return 'rx|' + payload.get('npi') + '|' + payload.get('product')
+            return 'rx|' + identifier + '|' + payload.get('product')
                 + '|' + payload.get('period') + '|' + payload.get('payer_segment');
         } else if (dataType == 'specialty_pharmacy') {
-            return 'sp|' + payload.get('npi') + '|' + payload.get('product')
-                + '|' + payload.get('period') + '|' + payload.get('pharmacy_id');
+            String pharmacyKey = payload.containsKey('pharmacy_id')
+                ? String.valueOf(payload.get('pharmacy_id'))
+                : String.valueOf(payload.get('pharmacy_name'));
+            return 'sp|' + identifier + '|' + payload.get('product')
+                + '|' + payload.get('period') + '|' + pharmacyKey;
         } else if (dataType == 'claims') {
             return 'cl|' + payload.get('claim_id');
         } else if (dataType == 'formulary') {
             return 'fm|' + payload.get('plan_id') + '|' + payload.get('product');
+        } else if (dataType == 'patient_journey') {
+            return 'pj|' + identifier + '|' + payload.get('product')
+                + '|' + payload.get('period') + '|' + payload.get('subtype');
+        } else if (dataType == 'medical_event') {
+            return 'me|' + identifier + '|' + payload.get('product')
+                + '|' + payload.get('period') + '|' + payload.get('event');
         } else {
             return dataType + '|' + String.valueOf(payload).hashCode();
         }
     }
 
+    private static final Set<String> COMPOUND_TYPES = new Set<String>{
+        'specialty_pharmacy', 'patient_journey', 'medical_event'
+    };
+
     @TestVisible
     private static String parseDataType(String scenarioName) {
-        List<String> parts = scenarioName.replace('demo_', '').split('_');
+        String remainder = scenarioName.replace('demo_', '');
+        for (String compoundType : COMPOUND_TYPES) {
+            if (remainder.startsWith(compoundType)) {
+                return compoundType;
+            }
+        }
+        List<String> parts = remainder.split('_');
         return parts.isEmpty() ? 'unknown' : parts[0];
     }
 

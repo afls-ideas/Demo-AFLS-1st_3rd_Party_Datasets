@@ -6,6 +6,8 @@ import clearAllData from '@salesforce/apex/DemoDataLoader.clearAllData';
 import getDataByType from '@salesforce/apex/DemoDataLoader.getDataByType';
 import { refreshApex } from '@salesforce/apex';
 
+const COMPOUND_TYPES = ['specialty_pharmacy', 'patient_journey', 'medical_event'];
+
 const COLUMN_MAP = {
     prescription: [
         { label: 'HCP', fieldName: 'hcp_name', type: 'text' },
@@ -23,14 +25,48 @@ const COLUMN_MAP = {
         { label: 'Pharmacy', fieldName: 'pharmacy_name', type: 'text' },
         { label: 'Period', fieldName: 'period', type: 'text' },
         { label: 'Fills', fieldName: 'fills', type: 'number' },
-        { label: 'Status', fieldName: 'status', type: 'text' }
+        { label: 'Refills', fieldName: 'refills', type: 'number' },
+        { label: 'Adherence (PDC)', fieldName: 'adherence_pdc', type: 'percent' },
+        { label: 'Abandon Rate', fieldName: 'abandonment_rate', type: 'percent' }
     ],
     claims: [
         { label: 'Claim ID', fieldName: 'claim_id', type: 'text' },
-        { label: 'Diagnosis', fieldName: 'diagnosis', type: 'text' },
-        { label: 'Procedure', fieldName: 'procedure', type: 'text' },
+        { label: 'HCP', fieldName: 'hcp_name', type: 'text' },
+        { label: 'Product', fieldName: 'product', type: 'text' },
+        { label: 'Diagnosis', fieldName: 'diagnosis_desc', type: 'text' },
+        { label: 'Line', fieldName: 'line_of_therapy', type: 'text' },
+        { label: 'Period', fieldName: 'period', type: 'text' },
+        { label: 'Allowed', fieldName: 'total_allowed', type: 'currency' },
+        { label: 'Status', fieldName: 'status', type: 'text' }
+    ],
+    formulary: [
+        { label: 'Plan', fieldName: 'plan_name', type: 'text' },
+        { label: 'Product', fieldName: 'product', type: 'text' },
+        { label: 'Status', fieldName: 'status', type: 'text' },
+        { label: 'Tier', fieldName: 'tier', type: 'text' },
+        { label: 'PA Required', fieldName: 'pa_required', type: 'boolean' },
+        { label: 'Step Therapy', fieldName: 'step_therapy', type: 'boolean' },
+        { label: 'Effective', fieldName: 'effective_date', type: 'text' }
+    ],
+    patient_journey: [
+        { label: 'HCP', fieldName: 'hcp_name', type: 'text' },
+        { label: 'Product', fieldName: 'product', type: 'text' },
+        { label: 'Period', fieldName: 'period', type: 'text' },
+        { label: 'Enrolled', fieldName: 'patients_enrolled', type: 'number' },
+        { label: 'PA Approved', fieldName: 'pa_approved', type: 'number' },
+        { label: 'PA Denied', fieldName: 'pa_denied', type: 'number' },
+        { label: 'Abandoned', fieldName: 'abandonment_count', type: 'number' },
+        { label: 'Persistency', fieldName: 'persistency_rate', type: 'percent' }
+    ],
+    medical_event: [
+        { label: 'HCP', fieldName: 'hcp_name', type: 'text' },
+        { label: 'Product', fieldName: 'product', type: 'text' },
+        { label: 'Event', fieldName: 'event', type: 'text' },
+        { label: 'Grade', fieldName: 'grade', type: 'number' },
+        { label: 'Organ System', fieldName: 'organ_system', type: 'text' },
         { label: 'Date', fieldName: 'period', type: 'text' },
-        { label: 'Amount', fieldName: 'amount', type: 'currency' }
+        { label: 'Outcome', fieldName: 'outcome', type: 'text' },
+        { label: 'Serious', fieldName: 'serious', type: 'boolean' }
     ]
 };
 
@@ -89,7 +125,13 @@ export default class DemoDataLauncher extends LightningElement {
     }
 
     parseType(scenarioName) {
-        const parts = scenarioName.replace('demo_', '').split('_');
+        const remainder = scenarioName.replace('demo_', '');
+        for (const ct of COMPOUND_TYPES) {
+            if (remainder.startsWith(ct)) {
+                return ct;
+            }
+        }
+        const parts = remainder.split('_');
         return parts[0] || 'unknown';
     }
 

@@ -1,0 +1,91 @@
+<template>
+    <lightning-card title="Access & Formulary" icon-name="standard:entitlement">
+        <div slot="actions">
+            <template if:true={hasData}>
+                <lightning-badge label={headerBadge}></lightning-badge>
+            </template>
+        </div>
+        <template if:false={hasData}>
+            <div class="slds-p-around_medium slds-text-color_weak">No access or formulary data available.</div>
+        </template>
+        <template if:true={hasData}>
+            <!-- KPI Cards -->
+            <div class="slds-p-horizontal_medium slds-p-top_small">
+                <div class="kpi-grid">
+                    <div class={kpi.plansCardClass}>
+                        <div class="kpi-value">{kpi.plansListed}</div>
+                        <div class="kpi-label">Plans Listed</div>
+                        <div class="kpi-sub">of {kpi.totalPlans} total</div>
+                    </div>
+                    <div class={kpi.claimsCardClass}>
+                        <div class="kpi-value">{kpi.claimsPaid}</div>
+                        <div class="kpi-label">Claims Paid</div>
+                        <div class="kpi-sub">of {kpi.totalClaims} submitted</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-value">{kpi.avgReimbursement}</div>
+                        <div class="kpi-label">Avg Reimbursement</div>
+                        <div class="kpi-sub">per claim</div>
+                    </div>
+                    <div class={kpi.paCardClass}>
+                        <div class="kpi-value">{kpi.paRequired}</div>
+                        <div class="kpi-label">PA Required</div>
+                        <div class="kpi-sub">plans with PA</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Signals -->
+            <template if:true={hasSignals}>
+                <div class="slds-p-horizontal_medium slds-p-top_medium">
+                    <div class="section-header">Signals & Recommended Actions</div>
+                    <template for:each={signals} for:item="sig">
+                        <div key={sig.id} class={sig.bannerClass}>
+                            <div class="signal-header">
+                                <lightning-icon icon-name={sig.icon} size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                <span class="slds-text-body_small"><strong>{sig.label}:</strong> {sig.message}</span>
+                            </div>
+                            <div class="signal-action">Next Step: {sig.action}</div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            <!-- Formulary Cards -->
+            <template if:true={hasFormulary}>
+                <div class="slds-p-around_medium">
+                    <div class="section-header">Formulary Status by Plan</div>
+                    <template for:each={formularyCards} for:item="fc">
+                        <div key={fc.id} class="formulary-card">
+                            <div>
+                                <div class="formulary-plan">{fc.plan_name}</div>
+                                <div class="formulary-detail">
+                                    Tier {fc.tier}
+                                    <template if:true={fc.pa_required}> | PA Required</template>
+                                    <template if:true={fc.step_therapy}> | Step Therapy</template>
+                                    <template if:true={fc.notes}> | {fc.notes}</template>
+                                </div>
+                            </div>
+                            <span class={fc.statusPillClass}>{fc.status}</span>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            <!-- Claims Cards -->
+            <template if:true={hasClaims}>
+                <div class="slds-p-horizontal_medium slds-p-bottom_medium">
+                    <div class="section-header">Recent Claims</div>
+                    <template for:each={claimCards} for:item="cl">
+                        <div key={cl.id} class="claim-row">
+                            <span class="claim-id">{cl.claim_id}</span>
+                            <span class="claim-detail">{cl.period} | {cl.claim_type}</span>
+                            <span class="claim-amount">${cl.total_paid}</span>
+                            <span class={cl.statusClass}>{cl.status}</span>
+                        </div>
+                    </template>
+                </div>
+            </template>
+        </template>
+    </lightning-card>
+</template>

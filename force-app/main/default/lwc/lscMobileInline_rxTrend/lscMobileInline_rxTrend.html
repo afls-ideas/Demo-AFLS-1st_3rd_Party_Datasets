@@ -1,0 +1,78 @@
+<template>
+    <lightning-card title="Prescribing Snapshot" icon-name="standard:medication_statement">
+        <div slot="actions">
+            <template if:true={hasData}>
+                <lightning-badge label={headerBadge}></lightning-badge>
+            </template>
+        </div>
+        <template if:false={hasData}>
+            <div class="slds-p-around_medium slds-text-color_weak">No prescription data available for this provider.</div>
+        </template>
+        <template if:true={hasData}>
+            <!-- KPI Cards -->
+            <div class="slds-p-horizontal_medium slds-p-top_small">
+                <div class="kpi-grid">
+                    <div class={ourTrxKpiClass}>
+                        <div class="kpi-value">{kpi.ourTrx}</div>
+                        <div class="kpi-label">Immunonco TRx</div>
+                        <div class="kpi-sub">{kpi.ourTrxTrend}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-value">{kpi.ourShare}</div>
+                        <div class="kpi-label">Market Share</div>
+                        <div class="kpi-sub">of total TRx</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-value">{kpi.ourNrx}</div>
+                        <div class="kpi-label">New Patients</div>
+                        <div class="kpi-sub">NRx total</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-value">{kpi.totalProducts}</div>
+                        <div class="kpi-label">Products</div>
+                        <div class="kpi-sub">prescribed</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Signals with Actions -->
+            <template if:true={hasSignals}>
+                <div class="slds-p-horizontal_medium slds-p-top_medium">
+                    <div class="section-header">Signals & Recommended Actions</div>
+                    <template for:each={signals} for:item="sig">
+                        <div key={sig.id} class={sig.bannerClass}>
+                            <div class="signal-header">
+                                <lightning-icon icon-name={sig.icon} size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                <span class="slds-text-body_small"><strong>{sig.label}:</strong> {sig.message}</span>
+                            </div>
+                            <div class="signal-action">Next Step: {sig.action}</div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            <!-- Product Breakdown -->
+            <template if:true={hasProductSummaries}>
+                <div class="slds-p-around_medium">
+                    <div class="section-header">Product Breakdown</div>
+                    <template for:each={productSummaries} for:item="ps">
+                        <div key={ps.id} class="product-row">
+                            <span class={ps.nameClass}>{ps.product}</span>
+                            <span class={ps.trendPillClass}>{ps.trendLabel}</span>
+                            <span class="product-stat">{ps.totalTrx} TRx</span>
+                            <div class="product-bar-container">
+                                <div class={ps.barClass} style={ps.barStyle}></div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            <!-- Detail Table -->
+            <div class="slds-p-horizontal_medium slds-p-bottom_medium">
+                <div class="section-header">Prescribing Detail</div>
+                <lightning-datatable key-field="id" data={tableData} columns={columns} hide-checkbox-column></lightning-datatable>
+            </div>
+        </template>
+    </lightning-card>
+</template>

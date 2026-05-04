@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomTab xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Load 1st and 3rd party demo data (prescriptions, specialty pharmacy, claims, formulary, patient journey, medical events)</description>
+    <label>1st and 3rd Party Data</label>
+    <lwcComponent>demoDataLauncher</lwcComponent>
+    <motif>Custom90: Scales</motif>
+</CustomTab>

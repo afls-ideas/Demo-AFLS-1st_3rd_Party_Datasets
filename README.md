@@ -46,10 +46,39 @@ All drug names are fictional. No real brand names.
 
 ## Included Scenarios
 
+### Standalone Prescription Scenarios
+
 | Static Resource | Type | TA | HCPs | Products | Rows |
 |---|---|---|---|---|---|
-| `demo_prescription_cardiology_northeast` | prescription | Cardiology | 5 | Corventis, Velostra, Stavorin, Glucanex, Thrombulex | ~75 |
-| `demo_prescription_oncology_metro` | prescription | Oncology | 4 | Onclaris, Nivolara, Zelimumab, Tecriva, Osivant | ~48 |
+| `demo_prescription_cardiology_northeast` | prescription | Cardiology | 5 | Corventis, Velostra, Stavorin, Glucanex, Thrombulex | 75 |
+| `demo_prescription_oncology_metro` | prescription | Oncology | 4 | Onclaris, Nivolara, Zelimumab, Tecriva, Osivant | 48 |
+
+### SP-ONC-USW-SF-001: Specialty Pharma Oncology — US-W San Francisco
+
+Full multi-dataset scenario covering the Immunonco launch in the SF Bay Area. See [scenario README](scenarios/SP-ONC-USW-SF-001/README.md) for detailed narratives.
+
+| Static Resource | Type | Rows | Description |
+|---|---|---|---|
+| `demo_prescription_oncology_usw_sf` | prescription | 66 | TRx/NRx by HCP, product, payer segment |
+| `demo_specialty_pharmacy_oncology_usw_sf` | specialty_pharmacy | 31 | 4 SP channels per HCP: fills, PDC, abandonment, copay |
+| `demo_claims_oncology_usw_sf` | claims | 22 | Part B buy-and-bill + pharmacy benefit claims |
+| `demo_formulary_oncology_usw_sf` | formulary | 15 | Formulary status across 6 payers |
+| `demo_patient_journey_oncology_usw_sf` | patient_journey | 18 | Hub funnel: referral → verified → approved → started → on therapy |
+| `demo_medical_event_oncology_usw_sf` | medical_event | 14 | Adverse events + auto-detected safety signal |
+
+## LWC Components
+
+Five visualization components for Account record pages. Each detects signals and provides actionable "Next Step" guidance for reps.
+
+| Component | Label | Data Type | Key Visual |
+|---|---|---|---|
+| `lscMobileInline_rxTrend` | Demo AFLS Prescribing Snapshot | prescription | Product bar chart, trend pills, competitive signals |
+| `lscMobileInline_spDispensing` | Demo AFLS Specialty Pharmacy Channel | specialty_pharmacy | Manufacturer→SP flow diagram, ranked comparison table |
+| `lscMobileInline_hubStatus` | Demo AFLS Patient Journey Hub Status | patient_journey | D3.js funnel chart, outcome KPIs, period trend table |
+| `lscMobileInline_accessStatus` | Demo AFLS Access and Formulary Status | claims + formulary | Formulary cards, claims history, P&T alerts |
+| `lscMobileInline_safetyAlerts` | Demo AFLS Safety and Medical Events | medical_event | AE grade badges, organ system chips, safety signals |
+
+See each component's README in `force-app/main/default/lwc/<component>/README.md`.
 
 ## Adding a New Scenario
 

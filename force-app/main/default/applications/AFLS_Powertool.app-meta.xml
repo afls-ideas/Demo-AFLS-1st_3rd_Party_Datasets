@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomApplication xmlns="http://soap.sforce.com/2006/04/metadata">
+    <defaultLandingTab>AFLSCE_Demo_Data</defaultLandingTab>
+    <formFactors>Large</formFactors>
+    <isNavAutoTempTabsDisabled>false</isNavAutoTempTabsDisabled>
+    <isNavPersonalizationDisabled>false</isNavPersonalizationDisabled>
+    <isNavTabPersistenceDisabled>false</isNavTabPersistenceDisabled>
+    <isOmniPinnedViewEnabled>false</isOmniPinnedViewEnabled>
+    <label>AFLS Powertool</label>
+    <navType>Standard</navType>
+    <tabs>AFLSCE_Demo_Data</tabs>
+    <tabs>First_and_Third_Party_Data</tabs>
+    <uiType>Lightning</uiType>
+</CustomApplication>

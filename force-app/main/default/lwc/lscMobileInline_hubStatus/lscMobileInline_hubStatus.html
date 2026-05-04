@@ -1,0 +1,101 @@
+<template>
+    <lightning-card title="Patient Journey / Hub" icon-name="standard:patient_medication_dosage">
+        <div slot="actions">
+            <template if:true={hasData}>
+                <lightning-badge label={headerBadge}></lightning-badge>
+            </template>
+        </div>
+        <template if:false={hasData}>
+            <div class="slds-p-around_medium slds-text-color_weak">No patient journey data available for this provider.</div>
+        </template>
+        <template if:true={hasData}>
+            <!-- D3 Funnel -->
+            <template if:true={hasSnapshot}>
+                <div class="slds-p-horizontal_medium slds-p-top_small">
+                    <div class="section-header">Patient Funnel — {latestSnapshot.period}</div>
+                    <div class="funnel-svg-wrap">
+                        <div lwc:dom="manual" class="funnel-chart"></div>
+                    </div>
+                </div>
+
+                <!-- Outcome KPIs -->
+                <div class="slds-p-horizontal_medium slds-p-top_medium">
+                    <div class="section-header">Key Outcomes</div>
+                    <div class="outcome-grid">
+                        <div class={kpi.persistCardClass}>
+                            <div class="outcome-value">{kpi.persistency}</div>
+                            <div class="outcome-label">Persistency</div>
+                            <div class="outcome-sub">{kpi.persistStatus}</div>
+                        </div>
+                        <div class={kpi.paCardClass}>
+                            <div class="outcome-value">{kpi.paAvgDays}d</div>
+                            <div class="outcome-label">PA Decision Time</div>
+                            <div class="outcome-sub">{kpi.paStatus}</div>
+                        </div>
+                        <div class={kpi.conversionCardClass}>
+                            <div class="outcome-value">{kpi.conversion}</div>
+                            <div class="outcome-label">Funnel Conversion</div>
+                            <div class="outcome-sub">{kpi.conversionStatus}</div>
+                        </div>
+                        <div class={kpi.enrollCardClass}>
+                            <div class="outcome-value">{kpi.enrollDelta}</div>
+                            <div class="outcome-label">Enrollment Trend</div>
+                            <div class="outcome-sub">{kpi.enrollSub}</div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Signals -->
+            <template if:true={hasSignals}>
+                <div class="slds-p-horizontal_medium slds-p-top_medium">
+                    <div class="section-header">Signals & Recommended Actions</div>
+                    <template for:each={signals} for:item="sig">
+                        <div key={sig.id} class={sig.bannerClass}>
+                            <div class="signal-header">
+                                <lightning-icon icon-name={sig.icon} size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                <span class="slds-text-body_small"><strong>{sig.label}:</strong> {sig.message}</span>
+                            </div>
+                            <div class="signal-action">Next Step: {sig.action}</div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            <!-- Period Trend Table -->
+            <template if:true={hasTrendData}>
+                <div class="slds-p-around_medium">
+                    <div class="section-header">Period-over-Period</div>
+                    <table class="trend-table">
+                        <thead>
+                            <tr>
+                                <th>Period</th>
+                                <th>Referred</th>
+                                <th>Verified</th>
+                                <th>Approved</th>
+                                <th>Started</th>
+                                <th>On Tx</th>
+                                <th>Conv.</th>
+                                <th>Persist.</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={trendRows} for:item="tr">
+                                <tr key={tr.id}>
+                                    <td class="trend-period-cell">{tr.period}</td>
+                                    <td class="trend-val-neutral">{tr.referred}</td>
+                                    <td class="trend-val-neutral">{tr.verified}</td>
+                                    <td class="trend-val-neutral">{tr.approved}</td>
+                                    <td class="trend-val-neutral">{tr.started}</td>
+                                    <td class="trend-val-neutral">{tr.onTherapy}</td>
+                                    <td class={tr.conversionClass}>{tr.conversion}</td>
+                                    <td class={tr.persistClass}>{tr.persist}</td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </template>
+        </template>
+    </lightning-card>
+</template>

@@ -4,13 +4,13 @@ private class DemoDataLoaderTest {
     @IsTest
     static void testBuildExternalKeyPrescription() {
         Map<String, Object> payload = new Map<String, Object>{
-            'npi' => '1100000001',
+            'hcp_name' => 'Dr. Sarah Chen',
             'product' => 'Corventis',
             'period' => '2025-01-01',
             'payer_segment' => 'Commercial'
         };
         String key = DemoDataLoader.buildExternalKey('prescription', payload);
-        Assert.areEqual('rx|1100000001|Corventis|2025-01-01|Commercial', key);
+        Assert.areEqual('rx|Dr. Sarah Chen|Corventis|2025-01-01|Commercial', key);
     }
 
     @IsTest
@@ -33,10 +33,61 @@ private class DemoDataLoaderTest {
     }
 
     @IsTest
+    static void testBuildExternalKeyPrescriptionByName() {
+        Map<String, Object> payload = new Map<String, Object>{
+            'hcp_name' => 'Dr. Jennifer Wu',
+            'product' => 'Immunonco (US)',
+            'period' => '2025-10-01',
+            'payer_segment' => 'Commercial'
+        };
+        String key = DemoDataLoader.buildExternalKey('prescription', payload);
+        Assert.areEqual('rx|Dr. Jennifer Wu|Immunonco (US)|2025-10-01|Commercial', key);
+    }
+
+    @IsTest
+    static void testBuildExternalKeySpecialtyPharmacyByName() {
+        Map<String, Object> payload = new Map<String, Object>{
+            'hcp_name' => 'Dr. Jennifer Wu',
+            'product' => 'Immunonco (US)',
+            'period' => '2025-10-01',
+            'pharmacy_name' => 'Optum Specialty Pharmacy'
+        };
+        String key = DemoDataLoader.buildExternalKey('specialty_pharmacy', payload);
+        Assert.areEqual('sp|Dr. Jennifer Wu|Immunonco (US)|2025-10-01|Optum Specialty Pharmacy', key);
+    }
+
+    @IsTest
+    static void testBuildExternalKeyPatientJourney() {
+        Map<String, Object> payload = new Map<String, Object>{
+            'hcp_name' => 'Dr. Jennifer Wu',
+            'product' => 'Immunonco (US)',
+            'period' => '2025-10-01',
+            'subtype' => 'hub_enrollment'
+        };
+        String key = DemoDataLoader.buildExternalKey('patient_journey', payload);
+        Assert.areEqual('pj|Dr. Jennifer Wu|Immunonco (US)|2025-10-01|hub_enrollment', key);
+    }
+
+    @IsTest
+    static void testBuildExternalKeyMedicalEvent() {
+        Map<String, Object> payload = new Map<String, Object>{
+            'hcp_name' => 'Dr. Marcus Chen',
+            'product' => 'Immunonco (US)',
+            'period' => '2026-01-05',
+            'event' => 'Colitis'
+        };
+        String key = DemoDataLoader.buildExternalKey('medical_event', payload);
+        Assert.areEqual('me|Dr. Marcus Chen|Immunonco (US)|2026-01-05|Colitis', key);
+    }
+
+    @IsTest
     static void testParseDataType() {
         Assert.areEqual('prescription', DemoDataLoader.parseDataType('demo_prescription_cardiology_northeast'));
-        Assert.areEqual('specialty', DemoDataLoader.parseDataType('demo_specialty_pharmacy_oncology'));
+        Assert.areEqual('specialty_pharmacy', DemoDataLoader.parseDataType('demo_specialty_pharmacy_oncology_usw_sf'));
+        Assert.areEqual('patient_journey', DemoDataLoader.parseDataType('demo_patient_journey_oncology_usw_sf'));
+        Assert.areEqual('medical_event', DemoDataLoader.parseDataType('demo_medical_event_oncology_usw_sf'));
         Assert.areEqual('claims', DemoDataLoader.parseDataType('demo_claims_neurology'));
+        Assert.areEqual('formulary', DemoDataLoader.parseDataType('demo_formulary_oncology_usw_sf'));
     }
 
     @IsTest
@@ -72,7 +123,7 @@ private class DemoDataLoaderTest {
             Type__c = 'prescription',
             Scenario__c = 'test_scenario',
             Period__c = Date.valueOf('2025-01-01'),
-            Payload__c = '{"npi":"1100000001","product":"Corventis","trx":42}',
+            Payload__c = '{"hcp_name":"Dr. Sarah Chen","product":"Corventis","trx":42}',
             External_Key__c = 'test|2'
         );
         insert rec;
