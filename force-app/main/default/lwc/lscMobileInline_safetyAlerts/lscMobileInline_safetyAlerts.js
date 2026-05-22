@@ -1,10 +1,15 @@
 import { LightningElement, api, wire } from 'lwc';
-import getDataForAccount from '@salesforce/apex/DemoDataLoader.getDataForAccount';
-import getDataByType from '@salesforce/apex/DemoDataLoader.getDataByType';
+import { gql, graphql, refreshGraphQL } from 'lightning/uiGraphQLApi';
+
+const VERSION = 'v1.1.0 — 2026-05-21 — GraphQL offline';
 
 export default class LscMobileInline_safetyAlerts extends LightningElement {
     @api recordId;
     @api mobileHeight = 550;
+
+    version = VERSION;
+    refreshing = false;
+
     signals = [];
     aeCards = [];
     organChips = [];
@@ -15,31 +20,102 @@ export default class LscMobileInline_safetyAlerts extends LightningElement {
 
     _accountEvents = [];
     _allEvents = [];
+    _accountWireResult;
+    _allWireResult;
 
-    @wire(getDataForAccount, { accountId: '$recordId', dataType: 'medical_event' })
-    wiredAccountData({ error, data }) {
-        if (data && data.length) {
-            this._accountEvents = data.map((rec, idx) => {
-                const parsed = JSON.parse(rec.Payload__c);
-                return { ...parsed, id: rec.Id || String(idx) };
-            });
-        } else {
+    @wire(graphql, {
+        query: gql`
+            query SafetyAccountEvents {
+                uiapi {
+                    query {
+                        Demo_Data__c(
+                            where: { Type__c: { eq: "medical_event" } }
+                            first: 200
+                        ) {
+                            edges {
+                                node {
+                                    Id
+                                    Account__c { value }
+                                    Payload__c { value }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        `
+    })
+    wiredAccountData(result) {
+        this._accountWireResult = result;
+        const { data, errors } = result;
+        if (errors) {
             this._accountEvents = [];
+            this.processAll();
+            return;
         }
+        const allEdges = data?.uiapi?.query?.Demo_Data__c?.edges || [];
+        this._accountEvents = allEdges
+            .filter((e) => e.node.Account__c?.value === this.recordId)
+            .map((e, idx) => {
+                const parsed = JSON.parse(e.node.Payload__c?.value || '{}');
+                return { ...parsed, id: e.node.Id || String(idx) };
+            });
         this.processAll();
     }
 
-    @wire(getDataByType, { dataType: 'medical_event', scenario: 'demo_medical_event_oncology_usw_sf' })
-    wiredAllData({ error, data }) {
-        if (data && data.length) {
-            this._allEvents = data.map((rec, idx) => {
-                const parsed = JSON.parse(rec.Payload__c);
-                return { ...parsed, id: 'all-' + (rec.Id || String(idx)) };
-            });
-        } else {
+    @wire(graphql, {
+        query: gql`
+            query SafetyScenarioEvents {
+                uiapi {
+                    query {
+                        Demo_Data__c(
+                            where: {
+                                and: [
+                                    { Type__c: { eq: "medical_event" } }
+                                    { Scenario__c: { eq: "demo_medical_event_oncology_usw_sf" } }
+                                ]
+                            }
+                            first: 200
+                        ) {
+                            edges {
+                                node {
+                                    Id
+                                    Payload__c { value }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        `
+    })
+    wiredAllData(result) {
+        this._allWireResult = result;
+        const { data, errors } = result;
+        if (errors) {
             this._allEvents = [];
+            this.processAll();
+            return;
         }
+        const allEdges = data?.uiapi?.query?.Demo_Data__c?.edges || [];
+        this._allEvents = allEdges.map((e, idx) => {
+            const parsed = JSON.parse(e.node.Payload__c?.value || '{}');
+            return { ...parsed, id: 'all-' + (e.node.Id || String(idx)) };
+        });
         this.processAll();
+    }
+
+    async handleRefresh() {
+        if (this.refreshing) return;
+        this.refreshing = true;
+        try {
+            const promises = [];
+            if (this._accountWireResult) promises.push(refreshGraphQL(this._accountWireResult));
+            if (this._allWireResult) promises.push(refreshGraphQL(this._allWireResult));
+            await Promise.all(promises.map((p) => p.catch(() => null)));
+        } finally {
+            this.refreshing = false;
+        }
     }
 
     processAll() {
@@ -90,7 +166,7 @@ export default class LscMobileInline_safetyAlerts extends LightningElement {
         this.detectSignals(aeData, grade3plus, safetySignals, organCounts, discontinued);
     }
 
-    detectSignals(aeData, grade3plus, safetySignals, organCounts, discontinued) {
+    detectSignals(_aeData, grade3plus, safetySignals, organCounts, discontinued) {
         const detected = [];
 
         if (grade3plus.length > 0) {

@@ -147,3 +147,15 @@
     background: #f3f3f3;
     color: #706e6b;
 }
+.version-tag {
+    display: inline-block;
+    padding: 0.1rem 0.5rem;
+    background: #1589ee;
+    color: #fff;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border-radius: 0.75rem;
+    white-space: nowrap;
+    vertical-align: middle;
+}

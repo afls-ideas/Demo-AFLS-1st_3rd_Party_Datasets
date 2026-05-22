@@ -3,6 +3,31 @@
     padding: 0;
 }
 
+/* Version Bar (top header with refresh) */
+.version-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.4rem 1rem;
+    background: #f3f6fc;
+    border-bottom: 1px solid #d8dde6;
+}
+.version-tag {
+    display: inline-block;
+    padding: 0.15rem 0.55rem;
+    background: #1589ee;
+    color: #fff;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.72rem;
+    font-weight: 600;
+    border-radius: 0.75rem;
+    white-space: nowrap;
+}
+.refresh-btn {
+    margin-left: auto;
+}
+
 /* Product Bar */
 .product-bar {
     display: flex;

@@ -1,9 +1,15 @@
 import { LightningElement, api, wire } from 'lwc';
-import getDataForAccount from '@salesforce/apex/DemoDataLoader.getDataForAccount';
+import { gql, graphql, refreshGraphQL } from 'lightning/uiGraphQLApi';
+
+const VERSION = 'v1.1.0 — 2026-05-21 — GraphQL offline';
 
 export default class LscMobileInline_spDispensing extends LightningElement {
     @api recordId;
     @api mobileHeight = 550;
+
+    version = VERSION;
+    refreshing = false;
+
     signals = [];
     tableData = [];
     hasData = false;
@@ -12,6 +18,7 @@ export default class LscMobileInline_spDispensing extends LightningElement {
     selectedProduct = '';
     productOptions = [];
     _allParsed = [];
+    _wireResult;
 
     columns = [
         { label: 'Pharmacy', fieldName: 'pharmacy_name', type: 'text' },
@@ -24,16 +31,51 @@ export default class LscMobileInline_spDispensing extends LightningElement {
         { label: 'Abandon %', fieldName: 'abandonment_rate', type: 'number', typeAttributes: { minimumFractionDigits: 2 } }
     ];
 
-    @wire(getDataForAccount, { accountId: '$recordId', dataType: 'specialty_pharmacy' })
-    wiredData({ error, data }) {
-        if (data && data.length) {
+    @wire(graphql, {
+        query: gql`
+            query SpDispensing {
+                uiapi {
+                    query {
+                        Demo_Data__c(
+                            where: { Type__c: { eq: "specialty_pharmacy" } }
+                            first: 200
+                        ) {
+                            edges {
+                                node {
+                                    Id
+                                    Account__c { value }
+                                    Payload__c { value }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        `
+    })
+    wiredData(result) {
+        this._wireResult = result;
+        const { data, errors } = result;
+        if (errors) {
+            this.hasData = false;
+            return;
+        }
+        const allEdges = data?.uiapi?.query?.Demo_Data__c?.edges || [];
+        const records = allEdges
+            .filter((e) => e.node.Account__c?.value === this.recordId)
+            .map((e) => ({
+                Id: e.node.Id,
+                Payload__c: e.node.Payload__c?.value
+            }));
+
+        if (records.length) {
             this.hasData = true;
-            this._allParsed = data.map((rec, idx) => {
+            this._allParsed = records.map((rec, idx) => {
                 const parsed = JSON.parse(rec.Payload__c);
                 return { ...parsed, id: rec.Id || String(idx) };
             });
-            const products = [...new Set(this._allParsed.map(r => r.product || 'Unknown'))];
-            this.productOptions = products.map(p => ({ label: p, value: p }));
+            const products = [...new Set(this._allParsed.map((r) => r.product || 'Unknown'))];
+            this.productOptions = products.map((p) => ({ label: p, value: p }));
             this.selectedProduct = products[0] || '';
             this.processForProduct();
         } else {
@@ -43,6 +85,20 @@ export default class LscMobileInline_spDispensing extends LightningElement {
             this.signals = [];
             this.flowCards = [];
             this.compareRows = [];
+        }
+    }
+
+    async handleRefresh() {
+        if (this.refreshing) return;
+        this.refreshing = true;
+        try {
+            if (this._wireResult) {
+                await refreshGraphQL(this._wireResult);
+            }
+        } catch (e) {
+            // swallow — refresh is best-effort
+        } finally {
+            this.refreshing = false;
         }
     }
 
@@ -56,14 +112,14 @@ export default class LscMobileInline_spDispensing extends LightningElement {
     }
 
     processForProduct() {
-        const rows = this._allParsed.filter(r => (r.product || 'Unknown') === this.selectedProduct);
+        const rows = this._allParsed.filter((r) => (r.product || 'Unknown') === this.selectedProduct);
         this.tableData = rows;
         this.processAll(rows);
     }
 
     processAll(data) {
         const byPharmacy = {};
-        data.forEach(r => {
+        data.forEach((r) => {
             const name = r.pharmacy_name || 'Unknown';
             if (!byPharmacy[name]) byPharmacy[name] = { rows: [], payer: r.payer_segment || '' };
             byPharmacy[name].rows.push(r);
@@ -72,7 +128,7 @@ export default class LscMobileInline_spDispensing extends LightningElement {
         const spNames = Object.keys(byPharmacy);
         const spStats = {};
 
-        spNames.forEach(name => {
+        spNames.forEach((name) => {
             const rows = byPharmacy[name].rows.sort((a, b) => a.period.localeCompare(b.period));
             const totalFills = rows.reduce((s, r) => s + (r.fills || 0), 0);
             const latest = rows[rows.length - 1];
@@ -168,7 +224,7 @@ export default class LscMobileInline_spDispensing extends LightningElement {
             }
         }
 
-        ranked.forEach(name => {
+        ranked.forEach((name) => {
             const s = spStats[name];
             if (s.latestPdc != null && s.latestPdc < 0.85) {
                 detected.push({
@@ -227,13 +283,13 @@ export default class LscMobileInline_spDispensing extends LightningElement {
             }
         }
 
-        this.signals = detected.map(s => ({ ...s, bannerClass: 'signal-banner signal-' + s.level }));
+        this.signals = detected.map((s) => ({ ...s, bannerClass: 'signal-banner signal-' + s.level }));
     }
 
     get hasSignals() { return this.signals.length > 0; }
     get hasMultiplePharmacies() { return this.flowCards.length > 1; }
     get headerBadge() {
-        const issues = this.signals.filter(s => s.level === 'error' || s.level === 'warning').length;
+        const issues = this.signals.filter((s) => s.level === 'error' || s.level === 'warning').length;
         return issues > 0 ? `${issues} channel issue(s)` : `${this.flowCards.length} SP channels`;
     }
 }

@@ -1,6 +1,17 @@
 <template>
     <lightning-card title="Patient Journey / Hub" icon-name="standard:patient_medication_dosage">
         <div slot="actions">
+            <span class="version-tag">{version}</span>
+            <lightning-button-icon
+                icon-name="utility:refresh"
+                alternative-text="Refresh"
+                title="Refresh"
+                onclick={handleRefresh}
+                disabled={refreshing}
+                size="small"
+                variant="border-filled"
+                class="slds-m-horizontal_x-small"
+            ></lightning-button-icon>
             <template if:true={hasData}>
                 <lightning-badge label={headerBadge}></lightning-badge>
             </template>

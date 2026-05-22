@@ -1,5 +1,19 @@
 <template>
     <div class="sp-root">
+        <div class="version-bar">
+            <span class="version-tag">{version}</span>
+            <lightning-button-icon
+                icon-name="utility:refresh"
+                alternative-text="Refresh"
+                title="Refresh"
+                onclick={handleRefresh}
+                disabled={refreshing}
+                size="small"
+                variant="border-filled"
+                class="refresh-btn"
+            ></lightning-button-icon>
+        </div>
+
         <template if:false={hasData}>
             <div class="slds-p-around_medium slds-text-color_weak">No specialty pharmacy data available for this provider.</div>
         </template>

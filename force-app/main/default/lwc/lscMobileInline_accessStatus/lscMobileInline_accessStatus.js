@@ -1,12 +1,16 @@
 import { LightningElement, api, wire } from 'lwc';
-import getDataForAccount from '@salesforce/apex/DemoDataLoader.getDataForAccount';
-import getDataByType from '@salesforce/apex/DemoDataLoader.getDataByType';
+import { gql, graphql, refreshGraphQL } from 'lightning/uiGraphQLApi';
 
+const VERSION = 'v1.1.0 — 2026-05-21 — GraphQL offline';
 const OUR_PRODUCT = 'Immunonco (US)';
 
 export default class LscMobileInline_accessStatus extends LightningElement {
     @api recordId;
     @api mobileHeight = 550;
+
+    version = VERSION;
+    refreshing = false;
+
     signals = [];
     formularyCards = [];
     claimCards = [];
@@ -16,15 +20,50 @@ export default class LscMobileInline_accessStatus extends LightningElement {
 
     _formularyAll = [];
     _claimsAll = [];
+    _claimsWireResult;
+    _formularyWireResult;
 
-    @wire(getDataForAccount, { accountId: '$recordId', dataType: 'claims' })
-    wiredClaims({ error, data }) {
-        if (data && data.length) {
-            this.hasClaims = true;
-            this._claimsAll = data.map((rec, idx) => {
-                const parsed = JSON.parse(rec.Payload__c);
-                return { ...parsed, id: rec.Id || String(idx) };
+    @wire(graphql, {
+        query: gql`
+            query AccessClaims {
+                uiapi {
+                    query {
+                        Demo_Data__c(
+                            where: { Type__c: { eq: "claims" } }
+                            first: 200
+                        ) {
+                            edges {
+                                node {
+                                    Id
+                                    Account__c { value }
+                                    Payload__c { value }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        `
+    })
+    wiredClaims(result) {
+        this._claimsWireResult = result;
+        const { data, errors } = result;
+        if (errors) {
+            this.hasClaims = false;
+            this._claimsAll = [];
+            this.processAll();
+            return;
+        }
+        const allEdges = data?.uiapi?.query?.Demo_Data__c?.edges || [];
+        const rows = allEdges
+            .filter((e) => e.node.Account__c?.value === this.recordId)
+            .map((e, idx) => {
+                const parsed = JSON.parse(e.node.Payload__c?.value || '{}');
+                return { ...parsed, id: e.node.Id || String(idx) };
             });
+        if (rows.length) {
+            this.hasClaims = true;
+            this._claimsAll = rows;
         } else {
             this.hasClaims = false;
             this._claimsAll = [];
@@ -32,19 +71,66 @@ export default class LscMobileInline_accessStatus extends LightningElement {
         this.processAll();
     }
 
-    @wire(getDataByType, { dataType: 'formulary', scenario: 'demo_formulary_oncology_usw_sf' })
-    wiredFormulary({ error, data }) {
-        if (data && data.length) {
+    @wire(graphql, {
+        query: gql`
+            query AccessFormulary {
+                uiapi {
+                    query {
+                        Demo_Data__c(
+                            where: {
+                                and: [
+                                    { Type__c: { eq: "formulary" } }
+                                    { Scenario__c: { eq: "demo_formulary_oncology_usw_sf" } }
+                                ]
+                            }
+                            first: 200
+                        ) {
+                            edges {
+                                node {
+                                    Id
+                                    Payload__c { value }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        `
+    })
+    wiredFormulary(result) {
+        this._formularyWireResult = result;
+        const { data, errors } = result;
+        if (errors) {
+            this.hasFormulary = false;
+            this._formularyAll = [];
+            this.processAll();
+            return;
+        }
+        const allEdges = data?.uiapi?.query?.Demo_Data__c?.edges || [];
+        if (allEdges.length) {
             this.hasFormulary = true;
-            this._formularyAll = data.map((rec, idx) => {
-                const parsed = JSON.parse(rec.Payload__c);
-                return { ...parsed, id: rec.Id || String(idx) };
+            this._formularyAll = allEdges.map((e, idx) => {
+                const parsed = JSON.parse(e.node.Payload__c?.value || '{}');
+                return { ...parsed, id: e.node.Id || String(idx) };
             });
         } else {
             this.hasFormulary = false;
             this._formularyAll = [];
         }
         this.processAll();
+    }
+
+    async handleRefresh() {
+        if (this.refreshing) return;
+        this.refreshing = true;
+        try {
+            const promises = [];
+            if (this._claimsWireResult) promises.push(refreshGraphQL(this._claimsWireResult));
+            if (this._formularyWireResult) promises.push(refreshGraphQL(this._formularyWireResult));
+            await Promise.all(promises.map((p) => p.catch(() => null)));
+        } finally {
+            this.refreshing = false;
+        }
     }
 
     processAll() {

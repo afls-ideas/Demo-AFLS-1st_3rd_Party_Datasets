@@ -1,5 +1,7 @@
 # Demo Framework — Generic Data Loader
 
+> **Disclaimer:** This repository is not an official Salesforce product and is not supported or endorsed by Salesforce. It is provided **AS IS**, without warranty of any kind, express or implied. Customers and system integrators are solely responsible for testing, validation, and due diligence before use in any environment.
+
 Load any type of demo data (Rx, specialty pharmacy, claims, formulary, etc.) into your AFLS org on demand. One generic object, JSON payloads, scenario-swappable, Data Cloud-ready.
 
 ## Architecture

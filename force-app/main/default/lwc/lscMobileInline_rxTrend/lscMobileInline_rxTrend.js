@@ -1,17 +1,23 @@
 import { LightningElement, api, wire } from 'lwc';
-import getDataForAccount from '@salesforce/apex/DemoDataLoader.getDataForAccount';
+import { gql, graphql, refreshGraphQL } from 'lightning/uiGraphQLApi';
 
+const VERSION = 'v1.1.0 — 2026-05-21 — GraphQL offline';
 const OUR_PRODUCT = 'Immunonco (US)';
 
 export default class LscMobileInline_rxTrend extends LightningElement {
     @api recordId;
     @api mobileHeight = 550;
+
+    version = VERSION;
+    refreshing = false;
+
     signals = [];
     tableData = [];
     hasData = false;
     productSummaries = [];
     kpi = { ourTrx: '—', ourShare: '—', ourNrx: '—', ourTrxTrend: '', totalProducts: '0' };
     _ourTrending = 'flat';
+    _wireResult;
 
     columns = [
         { label: 'Product', fieldName: 'product', type: 'text' },
@@ -22,20 +28,63 @@ export default class LscMobileInline_rxTrend extends LightningElement {
         { label: 'Payer', fieldName: 'payer_segment', type: 'text' }
     ];
 
-    @wire(getDataForAccount, { accountId: '$recordId', dataType: 'prescription' })
-    wiredData({ error, data }) {
-        if (data && data.length) {
-            this.hasData = true;
-            this.tableData = data.map((rec, idx) => {
-                const parsed = JSON.parse(rec.Payload__c);
-                return { ...parsed, id: rec.Id || String(idx) };
+    @wire(graphql, {
+        query: gql`
+            query RxTrend {
+                uiapi {
+                    query {
+                        Demo_Data__c(
+                            where: { Type__c: { eq: "prescription" } }
+                            first: 200
+                        ) {
+                            edges {
+                                node {
+                                    Id
+                                    Account__c { value }
+                                    Payload__c { value }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        `
+    })
+    wiredData(result) {
+        this._wireResult = result;
+        const { data, errors } = result;
+        if (errors) {
+            this.hasData = false;
+            return;
+        }
+        const allEdges = data?.uiapi?.query?.Demo_Data__c?.edges || [];
+        const rows = allEdges
+            .filter((e) => e.node.Account__c?.value === this.recordId)
+            .map((e, idx) => {
+                const parsed = JSON.parse(e.node.Payload__c?.value || '{}');
+                return { ...parsed, id: e.node.Id || String(idx) };
             });
+        if (rows.length) {
+            this.hasData = true;
+            this.tableData = rows;
             this.processAll();
         } else {
             this.hasData = false;
             this.tableData = [];
             this.signals = [];
             this.productSummaries = [];
+        }
+    }
+
+    async handleRefresh() {
+        if (this.refreshing) return;
+        this.refreshing = true;
+        try {
+            if (this._wireResult) await refreshGraphQL(this._wireResult);
+        } catch (e) {
+            // best-effort
+        } finally {
+            this.refreshing = false;
         }
     }
 

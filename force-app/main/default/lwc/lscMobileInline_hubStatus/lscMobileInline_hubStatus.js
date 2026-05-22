@@ -1,11 +1,17 @@
 import { LightningElement, api, wire } from 'lwc';
 import { loadScript } from 'lightning/platformResourceLoader';
 import d3js from '@salesforce/resourceUrl/d3js';
-import getDataForAccount from '@salesforce/apex/DemoDataLoader.getDataForAccount';
+import { gql, graphql, refreshGraphQL } from 'lightning/uiGraphQLApi';
+
+const VERSION = 'v1.1.0 — 2026-05-21 — GraphQL offline';
 
 export default class LscMobileInline_hubStatus extends LightningElement {
     @api recordId;
     @api mobileHeight = 550;
+
+    version = VERSION;
+    refreshing = false;
+
     signals = [];
     hasData = false;
     latestSnapshot = null;
@@ -14,6 +20,7 @@ export default class LscMobileInline_hubStatus extends LightningElement {
     _allData = [];
     _d3Loaded = false;
     _funnelData = [];
+    _wireResult;
 
     // Playback state
     _sortedPeriods = [];
@@ -36,16 +43,47 @@ export default class LscMobileInline_hubStatus extends LightningElement {
         this._stopPlayback();
     }
 
-    @wire(getDataForAccount, { accountId: '$recordId', dataType: 'patient_journey' })
-    wiredData({ error, data }) {
-        if (data && data.length) {
-            this.hasData = true;
-            this._allData = data.map((rec, idx) => {
-                const parsed = JSON.parse(rec.Payload__c);
-                return { ...parsed, id: rec.Id || String(idx) };
+    @wire(graphql, {
+        query: gql`
+            query HubStatus {
+                uiapi {
+                    query {
+                        Demo_Data__c(
+                            where: { Type__c: { eq: "patient_journey" } }
+                            first: 200
+                        ) {
+                            edges {
+                                node {
+                                    Id
+                                    Account__c { value }
+                                    Payload__c { value }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        `
+    })
+    wiredData(result) {
+        this._wireResult = result;
+        const { data, errors } = result;
+        if (errors) {
+            this.hasData = false;
+            return;
+        }
+        const allEdges = data?.uiapi?.query?.Demo_Data__c?.edges || [];
+        const rows = allEdges
+            .filter((e) => e.node.Account__c?.value === this.recordId)
+            .map((e, idx) => {
+                const parsed = JSON.parse(e.node.Payload__c?.value || '{}');
+                return { ...parsed, id: e.node.Id || String(idx) };
             });
+        if (rows.length) {
+            this.hasData = true;
+            this._allData = rows;
             this._sortedPeriods = [...this._allData]
-                .filter(d => d.subtype !== 'safety_signal')
+                .filter((d) => d.subtype !== 'safety_signal')
                 .sort((a, b) => a.period.localeCompare(b.period));
             this.showPlayback = this._sortedPeriods.length > 1;
             this._periodIndex = this._sortedPeriods.length - 1;
@@ -60,6 +98,18 @@ export default class LscMobileInline_hubStatus extends LightningElement {
             this._funnelData = [];
             this._sortedPeriods = [];
             this.showPlayback = false;
+        }
+    }
+
+    async handleRefresh() {
+        if (this.refreshing) return;
+        this.refreshing = true;
+        try {
+            if (this._wireResult) await refreshGraphQL(this._wireResult);
+        } catch (e) {
+            // best-effort
+        } finally {
+            this.refreshing = false;
         }
     }
 
