@@ -4,6 +4,8 @@
 
 Load any type of demo data (Rx, specialty pharmacy, claims, formulary, etc.) into your AFLS org on demand. One generic object, JSON payloads, scenario-swappable, Data Cloud-ready.
 
+![Patient Journey Hub demo](assets/PatientHub.gif)
+
 ## Architecture
 
 ```
